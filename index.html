@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>YWAM Siem Reap Scavenger Hunt</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#172033;--muted:#6b7280;--navy:#0f172a;--gold:#f4c542;--line:#e5e7eb;--ok:#15803d;--danger:#b91c1c}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:88px}
+.app{max-width:680px;margin:auto;padding:16px}.hero{background:linear-gradient(135deg,#0f172a,#1f2937);color:#fff;border-radius:26px;padding:24px 20px;margin:6px 0 16px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;font-weight:800}h1{font-size:30px;line-height:1.05;margin:8px 0}h2{font-size:22px;margin:0 0 12px}h3{margin:0 0 6px;font-size:18px}
+.card{background:var(--card);border-radius:20px;padding:17px;margin:12px 0;box-shadow:0 4px 16px #0f172a0d}label{display:block;font-size:13px;font-weight:800;margin:14px 0 6px}
+input,button{font:inherit}input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:14px}button{border:0;border-radius:14px;padding:13px 15px;background:var(--navy);color:#fff;font-weight:800}
+.primary{width:100%;margin-top:14px}.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.hidden{display:none!important}.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
+.pill{display:inline-flex;padding:7px 10px;border-radius:999px;background:#fff7d6;font-size:13px;font-weight:900;color:#6b5200}.small{font-size:13px;color:var(--muted)}.team-title{font-size:28px;font-weight:950}
+.members{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap}.member{background:#f3f4f6;border-radius:999px;padding:7px 10px;font-size:13px;font-weight:700}.challenge.done{background:#f0fdf4}.challenge p{color:#6b7280}
+.category{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:10px}.progress>div{height:100%;background:var(--gold);width:0}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fffffff2;border-top:1px solid var(--line);display:flex;justify-content:center;padding:8px;z-index:20}.tabs button{background:transparent;color:#6b7280;flex:1;max-width:220px;font-size:12px}.tabs button.active{background:var(--navy);color:#fff}
+.leader{display:flex;align-items:center;justify-content:space-between}.rank{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#f3f4f6;font-weight:950}.score{font-size:20px;font-weight:950}
+.feed-img,.feed-video{width:100%;border-radius:14px;margin-top:12px;max-height:420px;object-fit:cover;background:#111}.notice{padding:10px 12px;border-radius:12px;margin-top:12px;font-size:14px}.error{background:#fee2e2;color:var(--danger)}.success{background:#dcfce7;color:var(--ok)}
+.overlay{position:fixed;inset:0;background:#0f172a94;display:grid;place-items:end center;z-index:50;padding:14px}.sheet{width:min(680px,100%);background:#fff;border-radius:24px;padding:18px;max-height:88vh;overflow:auto}.sheet-actions{display:flex;gap:10px;margin-top:14px}.sheet-actions button{flex:1}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:99;overflow:hidden}.confetti span{position:absolute;top:-20px;font-size:24px;animation:fall 1.6s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hero"><div class="eyebrow">YWAM National Staff Conference</div><h1>Siem Reap Scavenger Hunt</h1><div>Join your team. Explore the city. Climb the leaderboard.</div></div>
+
+  <section id="joinView">
+    <div class="card"><h2>Join the Hunt</h2><p class="small">Enter your name and YWAM base/location. We’ll automatically place you on a team of 4–5.</p>
+      <label>Your name</label><input id="name" placeholder="e.g. Andrew">
+      <label>YWAM base / location</label><input id="base" placeholder="e.g. Siem Reap, Poipet">
+      <button id="joinBtn" class="primary">Find My Team</button><div id="joinMsg"></div>
+    </div>
+  </section>
+
+  <section id="appView" class="hidden">
+    <div class="card">
+      <div class="eyebrow" style="color:#64748b">YOUR TEAM</div><div id="teamName" class="team-title"></div><div id="teamScore" class="pill" style="margin-top:8px"></div>
+      <div id="members" class="members"></div><div class="progress"><div id="progressBar"></div></div><div id="progressText" class="small" style="margin-top:6px"></div>
+    </div>
+    <div id="challengesView"></div><div id="leaderboardView" class="hidden"></div><div id="feedView" class="hidden"></div>
+  </section>
+</div>
+
+<div id="tabs" class="tabs hidden">
+  <button class="active" data-tab="challenges">🎯<br>Challenges</button>
+  <button data-tab="leaderboard">🏆<br>Leaderboard</button>
+  <button data-tab="feed">📸<br>Feed</button>
+</div>
+
+<div id="uploadOverlay" class="overlay hidden"><div class="sheet">
+  <div class="row between"><div><div class="eyebrow" style="color:#64748b">COMPLETE CHALLENGE</div><h2 id="uploadTitle"></h2></div><button id="closeSheet" class="ghost">✕</button></div>
+  <p id="uploadDesc" class="small"></p><label>Photo / video</label><input id="mediaInput" type="file">
+  <div id="bonusWrap" class="hidden"><label id="bonusLabel">Bonus units</label><input id="bonusInput" type="number" min="0" value="0"><div id="bonusHint" class="small"></div></div>
+  <div id="uploadMsg"></div><div class="sheet-actions"><button id="submitUpload">Submit Challenge</button></div>
+</div></div>
+<div id="confetti" class="confetti"></div>
+
+<script>
+const API="https://zarxbmmnfmaorwjfopuu.supabase.co/functions/v1/hunt-api";
+const $=id=>document.getElementById(id);let state=null,currentChallenge=null,session=localStorage.getItem("hunt_session")||"";
+async function api(action,body={},method="POST"){const o={method,headers:{"Content-Type":"application/json"}};if(session)o.headers["x-hunt-session"]=session;if(method!=="GET")o.body=JSON.stringify(body);const r=await fetch(`${API}?action=${action}`,o);const d=await r.json();if(!r.ok||d.error)throw Error(d.error||"Request failed");return d}
+function msg(el,text,type="error"){el.innerHTML=text?`<div class="notice ${type}">${text}</div>`:""}
+async function join(){const name=$("name").value.trim(),base=$("base").value.trim();if(!name||!base)return msg($("joinMsg"),"Please enter your name and base/location.");$("joinBtn").disabled=true;try{const d=await api("join",{name,base,session});session=d.session;localStorage.setItem("hunt_session",session);await loadState(true)}catch(e){msg($("joinMsg"),e.message)}finally{$("joinBtn").disabled=false}}
+async function loadState(first=false){try{state=await api("state",{},"GET");$("joinView").classList.add("hidden");$("appView").classList.remove("hidden");$("tabs").classList.remove("hidden");renderAll();if(first)celebrate()}catch(e){if(session){localStorage.removeItem("hunt_session");session=""}}}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function renderAll(){const my=state.leaders?.find(x=>x.team_id===state.team.id);$("teamName").textContent=state.team.name;$("teamScore").textContent=`${my?.score||0} pts`;$("members").innerHTML=(state.members||[]).map(m=>`<span class="member">${esc(m.display_name)} · ${esc(m.base_name)}</span>`).join("");const total=state.challenges?.length||0,done=state.completed?.length||0;$("progressBar").style.width=total?`${done/total*100}%`:"0%";$("progressText").textContent=`${done} of ${total} challenges completed`;renderChallenges();renderLeaderboard();renderFeed()}
+function renderChallenges(){const done=new Set(state.completed||[]);$("challengesView").innerHTML=`<h2 style="margin:20px 4px 8px">Challenges</h2>`+(state.challenges||[]).map(c=>`<div class="card challenge ${done.has(c.id)?"done":""}"><div class="row between wrap"><div><div class="category">${esc(c.category||"challenge")}</div><h3>${done.has(c.id)?"✅ ":""}${esc(c.title)}</h3></div><span class="pill">${c.base_points?c.base_points+" pts":c.bonus_points_per_unit+" pts each"}</span></div><p>${esc(c.description||"")}</p>${done.has(c.id)?'<div class="notice success">Completed by your team 🎉</div>':`<button onclick="openChallenge('${c.id}')">📷 Complete Challenge</button>`}</div>`).join("")}
+function renderLeaderboard(){$("leaderboardView").innerHTML=`<h2 style="margin:20px 4px 8px">Live Leaderboard</h2>`+((state.leaders||[]).map((x,i)=>`<div class="card leader"><div class="row"><div class="rank">${i+1}</div><div><h3>${esc(x.name)}</h3><div class="small">${x.member_count} members · ${x.challenges_completed} completed</div></div></div><div class="score">${x.score} pts</div></div>`).join("")||'<div class="card">No scores yet.</div>')}
+function renderFeed(){$("feedView").innerHTML=`<h2 style="margin:20px 4px 8px">Live Feed</h2>`+((state.feed||[]).map(x=>`<div class="card"><div class="row between wrap"><div><b>${esc(x.team_name)}</b> completed <b>${esc(x.challenge_title)}</b></div><span class="pill">+${x.points_awarded} pts</span></div>${x.media_url?(x.media_type==="video"?`<video class="feed-video" controls playsinline src="${x.media_url}"></video>`:`<img class="feed-img" src="${x.media_url}">`):""}</div>`).join("")||'<div class="card">No posts yet.</div>')}
+function openChallenge(id){currentChallenge=state.challenges.find(c=>c.id===id);$("uploadTitle").textContent=currentChallenge.title;$("uploadDesc").textContent=currentChallenge.description||"";$("mediaInput").accept=currentChallenge.media_kind==="video"?"video/*":currentChallenge.media_kind==="photo"?"image/*":"image/*,video/*";$("mediaInput").value="";if(currentChallenge.max_bonus_units>0){$("bonusWrap").classList.remove("hidden");$("bonusLabel").textContent=currentChallenge.bonus_label||"Bonus units";$("bonusInput").max=currentChallenge.max_bonus_units;$("bonusHint").textContent=`Up to ${currentChallenge.max_bonus_units}. +${currentChallenge.bonus_points_per_unit} points each.`}else $("bonusWrap").classList.add("hidden");$("uploadOverlay").classList.remove("hidden")}
+async function submitChallenge(){const f=$("mediaInput").files[0];if(!f)return msg($("uploadMsg"),"Please choose a photo or video.");if(f.size>12*1024*1024)return msg($("uploadMsg"),"Please choose a file under 12 MB.");const type=f.type.startsWith("video")?"video":"photo";if(currentChallenge.media_kind!=="either"&&currentChallenge.media_kind!==type)return msg($("uploadMsg"),`This challenge requires a ${currentChallenge.media_kind}.`);$("submitUpload").disabled=true;try{const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});await api("upload",{challengeId:currentChallenge.id,mediaType:type,mime:f.type,data:data.split(",")[1],bonus:Number($("bonusInput").value||0)});$("uploadOverlay").classList.add("hidden");celebrate();await loadState()}catch(e){msg($("uploadMsg"),e.message)}finally{$("submitUpload").disabled=false}}
+function setTab(t){["challenges","leaderboard","feed"].forEach(x=>$(`${x}View`).classList.toggle("hidden",x!==t));document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t))}
+function celebrate(){const c=$("confetti");c.innerHTML="";for(let i=0;i<25;i++){const s=document.createElement("span");s.textContent=["🎉","✨","⭐","🥳"][Math.floor(Math.random()*4)];s.style.left=Math.random()*100+"vw";s.style.animationDelay=Math.random()*.4+"s";c.appendChild(s)}setTimeout(()=>c.innerHTML="",2000)}
+$("joinBtn").onclick=join;$("closeSheet").onclick=()=>$("uploadOverlay").classList.add("hidden");$("submitUpload").onclick=submitChallenge;document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));if(session)loadState();setInterval(()=>{if(session)loadState()},8000);
+</script>
+</body></html>

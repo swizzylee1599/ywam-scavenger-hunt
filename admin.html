@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Scavenger Hunt Admin</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <section id="authView" class="auth-card">
+      <div class="brand">YWAM Siem Reap</div>
+      <h1>Scavenger Hunt Admin</h1>
+      <p id="authIntro" class="muted">Checking admin setup…</p>
+      <label for="adminPassword">Admin password</label>
+      <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Enter password">
+      <button id="authBtn" class="primary">Continue</button>
+      <div id="authMsg"></div>
+    </section>
+
+    <section id="dashboardView" class="hidden dashboard">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">ORGANIZER DASHBOARD</div>
+          <h1>Siem Reap Scavenger Hunt</h1>
+        </div>
+        <button id="logoutBtn" class="ghost">Log out</button>
+      </header>
+
+      <section class="status-panel">
+        <div>
+          <div class="eyebrow">HUNT STATUS</div>
+          <div id="adminStatus" class="status-value">Draft</div>
+        </div>
+        <div class="timer-wrap">
+          <div class="eyebrow">TIME REMAINING</div>
+          <div id="adminTimer" class="big-timer">3:00:00</div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <button id="startBtn" class="success-btn">▶ Start Hunt</button>
+        <button id="endBtn" class="danger-btn">■ End Hunt</button>
+        <button id="resetBtn" class="secondary">↺ Reset to Draft</button>
+      </section>
+
+      <section class="stats-grid">
+        <article><div class="eyebrow">PARTICIPANTS</div><div id="participantCount" class="stat">0</div></article>
+        <article><div class="eyebrow">TEAMS</div><div id="teamCount" class="stat">0</div></article>
+      </section>
+
+      <section class="panel">
+        <div class="row between">
+          <div>
+            <div class="eyebrow">LEADERBOARD</div>
+            <h2>Top teams</h2>
+          </div>
+          <button id="refreshAdmin" class="secondary compact">Refresh</button>
+        </div>
+        <div id="adminLeaders"></div>
+      </section>
+
+      <p class="muted footnote">v0.2 includes admin start/end/reset controls. Challenge editing comes next.</p>
+    </section>
+  </main>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

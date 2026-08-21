@@ -1,0 +1,1 @@
+# ywam-scavenger-hunt

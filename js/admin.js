@@ -14,6 +14,20 @@ let reviewLoading = false;
 let displayFeed = [];
 let adminLiveLoading = false;
 
+const rejectionReasonLabels = {
+  unclear: 'Photo or video is unclear',
+  wrong_challenge: 'Wrong location or challenge',
+  missing_people: 'Required team members are missing',
+  requirements: 'Challenge requirements were not met',
+  other_retry: 'Redo and upload a clearer attempt',
+};
+
+function rejectionReasonOptions(selected = '') {
+  return Object.entries(rejectionReasonLabels).map(([value, label]) => (
+    `<option value="${value}"${selected === value ? ' selected' : ''}>${escapeHtml(label)}</option>`
+  )).join('');
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -408,6 +422,14 @@ function renderSubmissions() {
       const rejectButton = submission.status !== 'rejected'
         ? `<button class="danger-btn" type="button" data-review-id="${submission.id}" data-decision="rejected">Reject</button>`
         : '';
+      const rejectionReason = submission.status !== 'rejected'
+        ? `<label class="reject-reason-label">Reason if rejected
+            <select class="reject-reason" data-reject-reason="${submission.id}">
+              <option value="">Select a reason…</option>
+              ${rejectionReasonOptions()}
+            </select>
+          </label>`
+        : `<div class="rejection-note"><b>Reason:</b> ${escapeHtml(rejectionReasonLabels[submission.note] || 'Please redo this challenge.')}</div>`;
 
       return `
         <article class="submission-card">
@@ -424,6 +446,7 @@ function renderSubmissions() {
               ${bonus}
               <span class="meta-pill">${escapeHtml(submittedAt)}</span>
             </div>
+            ${rejectionReason}
             <div class="submission-actions">${approveButton}${rejectButton}</div>
           </div>
         </article>
@@ -461,11 +484,19 @@ async function loadSubmissions(reset = true, silent = false) {
 }
 
 async function reviewSubmission(id, decision, button) {
+  let reason = null;
+  if (decision === 'rejected') {
+    reason = document.querySelector(`[data-reject-reason="${id}"]`)?.value || '';
+    if (!reason) {
+      reviewMessage('Choose a rejection reason first.');
+      return;
+    }
+  }
   if (decision === 'rejected' && !confirm('Reject this submission? The team will be able to submit it again.')) return;
   setBusy(button, true, decision === 'approved' ? 'Approving…' : 'Rejecting…');
   reviewMessage('');
   try {
-    await api('review-submission', { id, decision });
+    await api('review-submission', { id, decision, reason });
     state = await api('state', {}, 'GET');
     renderDashboard();
     await loadSubmissions(true);

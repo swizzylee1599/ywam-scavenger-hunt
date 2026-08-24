@@ -71,6 +71,14 @@ function publicSubmissionStatus(value: string) {
   return value === 'flagged' ? 'pending' : value;
 }
 
+const rejectionReasons = new Set([
+  'unclear',
+  'wrong_challenge',
+  'missing_people',
+  'requirements',
+  'other_retry',
+]);
+
 function paginationCursor(value: unknown) {
   if (value == null || value === '') return null;
   const date = new Date(String(value));
@@ -293,10 +301,15 @@ Deno.serve(async (request) => {
       if (decision !== 'approved' && decision !== 'rejected') {
         throw new Error('Review decision must be approved or rejected');
       }
+      const reason = decision === 'rejected' ? String(body.reason || '') : null;
+      if (decision === 'rejected' && !rejectionReasons.has(reason!)) {
+        throw new Error('A valid rejection reason is required');
+      }
       const { data, error } = await db.from('submissions').update({
         status: decision,
         reviewed_at: new Date().toISOString(),
-      }).eq('id', id).select('id,status,reviewed_at').maybeSingle();
+        note: reason,
+      }).eq('id', id).select('id,status,reviewed_at,note').maybeSingle();
       if (error) throw error;
       if (!data) throw new Error('Submission not found');
       return Response.json({ submission: data }, { headers });

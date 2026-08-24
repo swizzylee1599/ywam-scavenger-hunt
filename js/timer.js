@@ -1,1 +1,41 @@
-window.timerInterval=null;window.formatRemaining=function(ms){if(ms<0)ms=0;const t=Math.floor(ms/1000),h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60;return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`};window.renderParticipantTimer=function(settings){const status=document.getElementById('huntStatus'),time=document.getElementById('countdown'),sub=document.getElementById('countdownSub');if(window.timerInterval)clearInterval(window.timerInterval);if(!settings||settings.status==='draft'){status.textContent='Waiting to start';time.textContent='3:00:00';sub.textContent='Waiting for organizer to start the hunt';return}if(settings.status==='closed'){status.textContent='Hunt finished';time.textContent='0:00:00';sub.textContent="Time's up! Check the final leaderboard.";return}status.textContent='Hunt is live';const tick=()=>{const left=new Date(settings.ends_at)-Date.now();time.textContent=window.formatRemaining(left);sub.textContent=left>0?'Go, go, go!':"Time's up!"};tick();window.timerInterval=setInterval(tick,1000)}
+window.timerInterval = null;
+
+window.formatRemaining = function formatRemaining(milliseconds) {
+  const remaining = Math.max(0, milliseconds);
+  const totalSeconds = Math.floor(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+window.renderParticipantTimer = function renderParticipantTimer(settings) {
+  const status = document.getElementById('huntStatus');
+  const time = document.getElementById('countdown');
+  const subtitle = document.getElementById('countdownSub');
+
+  if (window.timerInterval) clearInterval(window.timerInterval);
+
+  if (!settings || settings.status === 'draft') {
+    status.textContent = window.t('timer.waitingStatus');
+    time.textContent = '3:00:00';
+    subtitle.textContent = window.t('timer.waiting');
+    return;
+  }
+
+  if (settings.status === 'closed') {
+    status.textContent = window.t('timer.finished');
+    time.textContent = '0:00:00';
+    subtitle.textContent = window.t('timer.final');
+    return;
+  }
+
+  status.textContent = window.t('timer.live');
+  const tick = () => {
+    const remaining = new Date(settings.ends_at) - Date.now();
+    time.textContent = window.formatRemaining(remaining);
+    subtitle.textContent = remaining > 0 ? window.t('timer.go') : window.t('timer.timesUp');
+  };
+  tick();
+  window.timerInterval = setInterval(tick, 1000);
+};

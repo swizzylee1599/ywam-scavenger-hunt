@@ -98,7 +98,7 @@ Deno.serve(async (request) => {
         db.from('teams').select('*').eq('id', participant.team_id).single(),
         db.from('participants').select('display_name,base_name').eq('team_id', participant.team_id),
         db.from('challenges').select('*').eq('is_active', true).order('sort_order'),
-        db.from('submissions').select('challenge_id,status,created_at').eq('team_id', participant.team_id),
+        db.from('submissions').select('challenge_id,status,note,created_at').eq('team_id', participant.team_id),
         db.from('leaderboard').select('*').order('score', { ascending: false }).order('challenges_completed', { ascending: false }),
         db.from('activity_feed').select('*').order('created_at', { ascending: false }).limit(20),
         db.from('hunt_settings').select('*').eq('id', true).single(),
@@ -108,8 +108,12 @@ Deno.serve(async (request) => {
       }
 
       const submissionStatuses: Record<string, string> = {};
+      const submissionNotes: Record<string, string> = {};
       for (const submission of submissionsResult.data || []) {
         submissionStatuses[submission.challenge_id] = publicStatus(submission.status);
+        if (submission.status === 'rejected' && submission.note) {
+          submissionNotes[submission.challenge_id] = submission.note;
+        }
       }
       const feed = await signRows((feedResult.data || []) as Array<Record<string, any>>);
       const completed = (submissionsResult.data || [])
@@ -123,6 +127,7 @@ Deno.serve(async (request) => {
         challenges: challengesResult.data || [],
         completed,
         submission_statuses: submissionStatuses,
+        submission_notes: submissionNotes,
         leaders: leadersResult.data || [],
         feed,
         settings: settingsResult.data,
@@ -132,7 +137,7 @@ Deno.serve(async (request) => {
     if (action === 'live') {
       requireMethod(request, 'GET');
       const [submissionsResult, leadersResult, feedResult, settingsResult] = await Promise.all([
-        db.from('submissions').select('challenge_id,status,created_at').eq('team_id', participant.team_id),
+        db.from('submissions').select('challenge_id,status,note,created_at').eq('team_id', participant.team_id),
         db.from('leaderboard').select('*').order('score', { ascending: false }).order('challenges_completed', { ascending: false }),
         db.from('activity_feed').select('id').order('created_at', { ascending: false }).limit(20),
         db.from('hunt_settings').select('*').eq('id', true).single(),
@@ -142,8 +147,12 @@ Deno.serve(async (request) => {
       }
 
       const submissionStatuses: Record<string, string> = {};
+      const submissionNotes: Record<string, string> = {};
       for (const submission of submissionsResult.data || []) {
         submissionStatuses[submission.challenge_id] = publicStatus(submission.status);
+        if (submission.status === 'rejected' && submission.note) {
+          submissionNotes[submission.challenge_id] = submission.note;
+        }
       }
       const completed = (submissionsResult.data || [])
         .filter((submission: any) => submission.status === 'approved')
@@ -152,6 +161,7 @@ Deno.serve(async (request) => {
       return Response.json({
         completed,
         submission_statuses: submissionStatuses,
+        submission_notes: submissionNotes,
         leaders: leadersResult.data || [],
         feed_ids: (feedResult.data || []).map((item: any) => item.id),
         settings: settingsResult.data,

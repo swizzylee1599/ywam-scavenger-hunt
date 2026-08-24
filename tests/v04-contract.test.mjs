@@ -14,7 +14,7 @@ test('submission workflow defaults to review and preserves approved-only scoring
 
 test('browser code contains no Supabase service-role secret', async () => {
   const browserFiles = await Promise.all([
-    'index.html', 'admin.html', 'join.html', 'js/api.js', 'js/app.js', 'js/admin.js', 'js/join.js',
+    'index.html', 'admin.html', 'join.html', 'js/api.js', 'js/app.js', 'js/admin.js', 'js/i18n.js', 'js/join.js',
   ].map(read));
   for (const source of browserFiles) assert.doesNotMatch(source, /service[_-]?role/i);
 });
@@ -78,7 +78,68 @@ test('join form offers every Cambodia province and municipality', async () => {
   const html = await read('index.html');
   const provinceSelect = html.match(/<select id="base"[\s\S]*?<\/select>/)?.[0] || '';
   assert.match(provinceSelect, /Select your province/);
-  assert.equal((provinceSelect.match(/<option value="[^\"]+">/g) || []).length, 25);
+  assert.equal((provinceSelect.match(/<option value="[^\"]+"[^>]*>/g) || []).length, 25);
   assert.match(provinceSelect, /value="Phnom Penh"/);
   assert.match(provinceSelect, /value="Tboung Khmum"/);
+});
+
+test('participant UI provides Khmer language, instructions, and resilient upload feedback', async () => {
+  const [html, i18n, app] = await Promise.all([
+    read('index.html'),
+    read('js/i18n.js'),
+    read('js/app.js'),
+  ]);
+  assert.match(html, /data-language="km"/);
+  assert.match(html, /id="howToOverlay"/);
+  assert.match(html, /id="uploadProgress"/);
+  assert.match(i18n, /បន្ទាយមានជ័យ/);
+  assert.match(i18n, /'how\.safety'/);
+  assert.match(app, /window\.addEventListener\('offline'/);
+  assert.match(app, /reader\.onprogress/);
+});
+
+test('rejection reasons are validated by admin API and returned to participants', async () => {
+  const [admin, participantApi, adminApi] = await Promise.all([
+    read('js/admin.js'),
+    read('supabase/functions/hunt-api/index.ts'),
+    read('supabase/functions/hunt-admin-api/index.ts'),
+  ]);
+  assert.match(admin, /Choose a rejection reason first/);
+  assert.match(admin, /api\('review-submission', \{ id, decision, reason \}\)/);
+  assert.match(adminApi, /const rejectionReasons = new Set/);
+  assert.match(adminApi, /A valid rejection reason is required/);
+  assert.match(adminApi, /note: reason/);
+  assert.match(participantApi, /submission_notes: submissionNotes/);
+});
+
+test('three-hour race seed adds the requested challenges with safe instructions', async () => {
+  const [migration, i18n] = await Promise.all([
+    read('supabase/migrations/20260824091935_add_three_hour_race_challenges.sql'),
+    read('js/i18n.js'),
+  ]);
+  const proposedRows = migration.match(/^\+?  \('[0-9a-f-]+'::uuid/gm) || [];
+  assert.equal(proposedRows.length, 14);
+  assert.match(migration, /Angkor Botanical Garden/);
+  assert.match(migration, /Royal Residence/);
+  assert.match(migration, /red tuk tuk/);
+  assert.match(migration, /Ask everyone for permission first/);
+  assert.match(migration, /Do not sit on it or ride overcrowded/);
+  assert.match(migration, /never touch or disturb a live animal/);
+  assert.match(i18n, /សួនរុក្ខជាតិអង្គរ/);
+  assert.match(i18n, /Five International Friends/);
+});
+
+test('race accepts photo or video while keeping video challenges explicit and celebrates submissions', async () => {
+  const [migration, app, css] = await Promise.all([
+    read('supabase/migrations/20260824101429_allow_photo_or_video_challenges.sql'),
+    read('js/app.js'),
+    read('css/app.css'),
+  ]);
+  assert.match(migration, /set media_kind = 'either'/);
+  assert.match(migration, /where media_kind = 'photo'/);
+  assert.match(migration, /one parked moto/);
+  assert.match(app, /celebrate\('big'\)/);
+  assert.match(app, /intensity === 'big' \? 90 : 30/);
+  assert.match(app, /image\/\*,video\/\*/);
+  assert.match(css, /--drift/);
 });

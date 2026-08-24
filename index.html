@@ -12,19 +12,28 @@
 <body>
   <main class="app">
     <section class="hero">
+      <div class="hero-actions">
+        <button id="howToBtn" class="hero-button" type="button" data-i18n="how.open">❔ How to Play</button>
+        <div class="language-switch" role="group" aria-label="Language">
+          <button type="button" data-language="en">EN</button>
+          <button type="button" data-language="km">ខ្មែរ</button>
+        </div>
+      </div>
       <div class="eyebrow">YWAM National Staff Conference</div>
       <h1>The Amazing Race- Siem Reap Edition</h1>
-      <p>Join your team. Explore the city. Climb the leaderboard.</p>
-      <div id="huntStatus" class="hunt-status">Waiting to start</div>
+      <p data-i18n="hero.tagline">Join your team. Explore the city. Climb the leaderboard.</p>
+      <div id="huntStatus" class="hunt-status" data-i18n="timer.waitingStatus">Waiting to start</div>
     </section>
+
+    <div id="connectionBanner" class="connection-banner hidden" role="status" aria-live="polite"></div>
 
     <section id="joinView">
       <div class="card">
-        <h2>Join the Hunt</h2>
-        <p class="muted">Enter your name and select your province. We’ll automatically place you on a team of 4–5.</p>
-        <label for="name">Your name</label>
-        <input id="name" autocomplete="name" autocapitalize="words" placeholder="e.g. Andrew">
-        <label for="base">Province / municipality</label>
+        <h2 data-i18n="join.title">Join the Hunt</h2>
+        <p class="muted" data-i18n="join.intro">Enter your name and select your province. We’ll automatically place you on a team of 4–5.</p>
+        <label for="name" data-i18n="join.name">Your name</label>
+        <input id="name" autocomplete="name" autocapitalize="words" placeholder="e.g. Andrew" data-i18n-placeholder="join.namePlaceholder">
+        <label for="base" data-i18n="join.province">Province / municipality</label>
         <select id="base" required>
           <option value="" selected disabled>Select your province</option>
           <option value="Banteay Meanchey">Banteay Meanchey</option>
@@ -42,7 +51,7 @@
           <option value="Oddar Meanchey">Oddar Meanchey</option>
           <option value="Pailin">Pailin</option>
           <option value="Phnom Penh">Phnom Penh</option>
-          <option value="Preah Sihanouk">Preah Sihanouk (Sihanoukville)</option>
+          <option value="Preah Sihanouk" data-english="Preah Sihanouk (Sihanoukville)">Preah Sihanouk (Sihanoukville)</option>
           <option value="Preah Vihear">Preah Vihear</option>
           <option value="Prey Veng">Prey Veng</option>
           <option value="Pursat">Pursat</option>
@@ -53,7 +62,7 @@
           <option value="Takeo">Takeo</option>
           <option value="Tboung Khmum">Tboung Khmum</option>
         </select>
-        <button id="joinBtn" class="primary">Find My Team</button>
+        <button id="joinBtn" class="primary" data-i18n="join.button">Find My Team</button>
         <div id="joinMsg"></div>
       </div>
     </section>
@@ -62,13 +71,13 @@
       <div class="card team-card">
         <div class="row between">
           <div>
-            <div class="eyebrow dark">YOUR TEAM</div>
+            <div class="eyebrow dark" data-i18n="team.your">YOUR TEAM</div>
             <div id="teamIdentity" class="team-identity">
               <span id="teamIcon" class="team-icon">⭐</span>
               <span id="teamName">Team</span>
             </div>
           </div>
-          <button id="editTeamBtn" class="secondary compact">⚙️ Team Settings</button>
+          <button id="editTeamBtn" class="secondary compact" data-i18n="team.settings">⚙️ Team Settings</button>
         </div>
 
         <div class="row between status-row">
@@ -82,15 +91,15 @@
         <div id="progressText" class="muted small"></div>
 
         <div class="countdown-box">
-          <div class="countdown-label">HUNT TIMER</div>
+          <div class="countdown-label" data-i18n="timer.label">HUNT TIMER</div>
           <div id="countdown" class="countdown">3:00:00</div>
-          <div id="countdownSub" class="muted small">Waiting for organizer to start the hunt</div>
+          <div id="countdownSub" class="muted small" data-i18n="timer.waiting">Waiting for organizer to start the hunt</div>
         </div>
       </div>
 
       <div class="row between utility-row">
         <div id="syncText" class="muted small">Updated just now</div>
-        <button id="refreshBtn" class="secondary compact">Refresh</button>
+        <button id="refreshBtn" class="secondary compact" data-i18n="sync.refresh">Refresh</button>
       </div>
 
       <section id="challengesView"></section>
@@ -100,22 +109,22 @@
   </main>
 
   <nav id="tabs" class="tabs hidden">
-    <button class="active" data-tab="challenges">🎯<span>Challenges</span></button>
-    <button data-tab="leaderboard">🏆<span>Leaderboard</span></button>
-    <button data-tab="feed">📸<span>Feed</span></button>
+    <button class="active" data-tab="challenges">🎯<span data-i18n="tabs.challenges">Challenges</span></button>
+    <button data-tab="leaderboard">🏆<span data-i18n="tabs.leaderboard">Leaderboard</span></button>
+    <button data-tab="feed">📸<span data-i18n="tabs.feed">Feed</span></button>
   </nav>
 
   <div id="uploadOverlay" class="overlay hidden">
     <div class="sheet">
       <div class="row between">
         <div>
-          <div class="eyebrow dark">COMPLETE CHALLENGE</div>
+          <div class="eyebrow dark" data-i18n="upload.eyebrow">COMPLETE CHALLENGE</div>
           <h2 id="uploadTitle"></h2>
         </div>
         <button id="closeUpload" class="ghost compact">✕</button>
       </div>
       <p id="uploadDesc" class="muted"></p>
-      <label for="mediaInput">Photo / video</label>
+      <label for="mediaInput" data-i18n="upload.media">Photo / video</label>
       <input id="mediaInput" type="file">
       <img id="imagePreview" class="preview hidden" alt="Selected photo preview">
       <video id="videoPreview" class="preview hidden" controls playsinline></video>
@@ -127,7 +136,11 @@
       </div>
 
       <div id="uploadMsg"></div>
-      <button id="submitUpload" class="primary">Submit Challenge</button>
+      <div id="uploadProgress" class="upload-progress hidden" role="status" aria-live="polite">
+        <div class="upload-progress-track"><div id="uploadProgressBar"></div></div>
+        <div id="uploadProgressText" class="small"></div>
+      </div>
+      <button id="submitUpload" class="primary" data-i18n="upload.submit">Submit Challenge</button>
     </div>
   </div>
 
@@ -135,16 +148,16 @@
     <div class="sheet">
       <div class="row between">
         <div>
-          <div class="eyebrow dark">TEAM SETTINGS</div>
-          <h2>Customize your team</h2>
+          <div class="eyebrow dark" data-i18n="team.settings">TEAM SETTINGS</div>
+          <h2 data-i18n="team.customize">Customize your team</h2>
         </div>
         <button id="closeTeam" class="ghost compact">✕</button>
       </div>
 
-      <label for="teamNameInput">Team name</label>
+      <label for="teamNameInput" data-i18n="team.name">Team name</label>
       <input id="teamNameInput" maxlength="32" placeholder="Team name">
 
-      <label>Choose an icon</label>
+      <label data-i18n="team.chooseIcon">Choose an icon</label>
       <div id="iconPicker" class="picker-grid">
         <button data-icon="🐘">🐘</button><button data-icon="🐅">🐅</button>
         <button data-icon="🐒">🐒</button><button data-icon="🦜">🦜</button>
@@ -160,7 +173,7 @@
         <button data-icon="🗺️">🗺️</button><button data-icon="🏁">🏁</button>
       </div>
 
-      <label>Choose a color</label>
+      <label data-i18n="team.chooseColor">Choose a color</label>
       <div id="colorPicker" class="color-grid">
         <button data-color="#0f172a" aria-label="Navy" style="--swatch:#0f172a"></button>
         <button data-color="#2563eb" aria-label="Blue" style="--swatch:#2563eb"></button>
@@ -181,12 +194,35 @@
       </div>
 
       <div id="teamMsg"></div>
-      <button id="saveTeamBtn" class="primary">Save Team</button>
+      <button id="saveTeamBtn" class="primary" data-i18n="team.save">Save Team</button>
+    </div>
+  </div>
+
+  <div id="howToOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="howToTitle">
+    <div class="sheet how-to-sheet">
+      <div class="row between">
+        <div>
+          <div class="eyebrow dark">YWAM NATIONAL STAFF CONFERENCE</div>
+          <h2 id="howToTitle" data-i18n="how.title">How to Play</h2>
+        </div>
+        <button id="closeHowTo" class="ghost compact" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="how-intro" data-i18n="how.intro">Race together, stay safe, and have fun!</p>
+      <ol class="how-list">
+        <li data-i18n="how.join">Join with your name and province. You will be placed on a team of 4–5.</li>
+        <li data-i18n="how.complete">Complete challenges together and upload the required photo or video.</li>
+        <li data-i18n="how.review">The organizer reviews every upload. Only approved submissions earn points.</li>
+        <li data-i18n="how.retry">If an upload is rejected, you will see the reason and can submit a new attempt.</li>
+        <li data-i18n="how.timer">The race lasts exactly three hours after the organizer presses Start Hunt.</li>
+        <li data-i18n="how.safety">Stay with your team, respect people and places, follow local laws, and never take unsafe risks.</li>
+      </ol>
+      <button id="understandHowTo" class="primary" type="button" data-i18n="how.close">Got it</button>
     </div>
   </div>
 
   <div id="confetti" class="confetti"></div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/api.js"></script>
   <script src="js/timer.js"></script>
   <script src="js/team.js"></script>

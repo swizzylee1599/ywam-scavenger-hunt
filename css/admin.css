@@ -95,6 +95,9 @@ body.modal-open{overflow:hidden}
 .submission-status.rejected{background:#fee2e2;color:#991b1b}
 .submission-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:12px}
 .submission-actions button{flex:1;min-width:120px}
+.reject-reason-label{display:grid;gap:6px;margin-top:14px;color:#475569;font-size:12px;font-weight:850}
+.reject-reason{margin:0;background:#fff}
+.rejection-note{margin-top:14px;padding:10px 12px;border-radius:10px;background:#fff1f2;color:#9f1239;font-size:13px}
 .submission-empty{padding:32px 18px;text-align:center;border:1px dashed #cbd5e1;border-radius:16px;color:#64748b}
 .load-more{display:block;width:100%;margin-top:14px}
 .display-toolbar{gap:18px;margin:18px 0 12px}

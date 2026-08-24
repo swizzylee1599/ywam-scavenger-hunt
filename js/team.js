@@ -26,7 +26,7 @@ window.saveTeamSettings = async function saveTeamSettings() {
   const message = document.getElementById('teamMsg');
   const button = document.getElementById('saveTeamBtn');
   button.disabled = true;
-  button.textContent = 'Saving…';
+  button.textContent = window.t('team.saving');
   message.innerHTML = '';
   try {
     await window.huntApi('update-team', {
@@ -40,7 +40,7 @@ window.saveTeamSettings = async function saveTeamSettings() {
     message.innerHTML = `<div class="notice error">${teamEscapeHtml(error.message)}</div>`;
   } finally {
     button.disabled = false;
-    button.textContent = 'Save Team';
+    button.textContent = window.t('team.save');
   }
 };
 

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>Join The Amazing Race- Siem Reap Edition</title>
+  <link rel="stylesheet" href="css/join.css">
+</head>
+<body>
+  <main class="join-page">
+    <section class="join-card">
+      <div class="eyebrow">YWAM National Staff Conference</div>
+      <h1>The Amazing Race-<br><span>Siem Reap Edition</span></h1>
+      <p class="instruction">Scan to join the race</p>
+      <div id="joinQr" class="qr" aria-label="QR code for the participant app"></div>
+      <p id="joinUrl" class="join-url"></p>
+      <div class="actions">
+        <button id="copyJoinLink" type="button">Copy join link</button>
+        <a id="openJoinLink" href="./">Open participant app</a>
+      </div>
+      <p id="copyStatus" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <script src="js/join.js"></script>
+</body>
+</html>

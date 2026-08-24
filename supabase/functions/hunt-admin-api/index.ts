@@ -60,6 +60,37 @@ async function getSettings() {
   return data;
 }
 
+function databaseSubmissionStatus(value: unknown) {
+  const status = String(value || 'pending');
+  if (status === 'pending') return 'flagged';
+  if (status === 'approved' || status === 'rejected') return status;
+  throw new Error('Submission status must be pending, approved, or rejected');
+}
+
+function publicSubmissionStatus(value: string) {
+  return value === 'flagged' ? 'pending' : value;
+}
+
+function paginationCursor(value: unknown) {
+  if (value == null || value === '') return null;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) throw new Error('Invalid submission cursor');
+  return date.toISOString();
+}
+
+async function withSignedMedia(rows: Array<Record<string, any>>) {
+  if (!rows.length) return [];
+  const paths = rows.map((row) => row.media_path);
+  const { data, error } = await db.storage.from('hunt-media').createSignedUrls(paths, 3600);
+  if (error) throw error;
+  const urls = new Map((data || []).map((item: any) => [item.path, item.signedUrl]));
+  return rows.map((row) => ({
+    ...row,
+    status: publicSubmissionStatus(row.status),
+    media_url: urls.get(row.media_path) || null,
+  }));
+}
+
 function requireMethod(request: Request, expected: 'GET' | 'POST') {
   if (request.method !== expected) throw new Error(`${expected} required`);
 }
@@ -131,24 +162,144 @@ Deno.serve(async (request) => {
 
     if (action === 'state') {
       requireMethod(request, 'GET');
-      const [settings, participants, teams, leaders, challenges] = await Promise.all([
+      const [settings, participants, teams, leaders, challenges, pending, approved, rejected, latestActivity] = await Promise.all([
         getSettings(),
         db.from('participants').select('id', { count: 'exact', head: true }),
         db.from('teams').select('id', { count: 'exact', head: true }),
         db.from('leaderboard').select('*').order('score', { ascending: false }).limit(10),
         db.from('challenges').select('*').order('sort_order').order('created_at'),
+        db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'flagged'),
+        db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+        db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
+        db.from('activity_feed').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (participants.error) throw participants.error;
       if (teams.error) throw teams.error;
       if (leaders.error) throw leaders.error;
       if (challenges.error) throw challenges.error;
+      if (pending.error) throw pending.error;
+      if (approved.error) throw approved.error;
+      if (rejected.error) throw rejected.error;
+      if (latestActivity.error) throw latestActivity.error;
       return Response.json({
         settings,
         participant_count: participants.count || 0,
         team_count: teams.count || 0,
         leaders: leaders.data || [],
         challenges: challenges.data || [],
+        submission_counts: {
+          pending: pending.count || 0,
+          approved: approved.count || 0,
+          rejected: rejected.count || 0,
+        },
+        latest_activity_id: latestActivity.data?.id || null,
       }, { headers });
+    }
+
+    if (action === 'live-feed') {
+      requireMethod(request, 'GET');
+      const { data, error } = await db.from('activity_feed')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return Response.json({
+        feed: await withSignedMedia((data || []) as Array<Record<string, any>>),
+      }, { headers });
+    }
+
+    if (action === 'clear-gameplay') {
+      requireMethod(request, 'POST');
+      if (body.confirm !== 'CLEAR GAMEPLAY DATA') {
+        throw new Error('Exact cleanup confirmation is required');
+      }
+
+      const { error: storageError } = await db.storage.emptyBucket('hunt-media');
+      if (storageError) throw storageError;
+
+      const { error: submissionError } = await db.from('submissions').delete().not('id', 'is', null);
+      if (submissionError) throw submissionError;
+      const { error: participantDeleteError } = await db.from('participants').delete().not('id', 'is', null);
+      if (participantDeleteError) throw participantDeleteError;
+
+      const { data: teams, error: teamReadError } = await db.from('teams').select('id,team_number');
+      if (teamReadError) throw teamReadError;
+      const resetTeams = (teams || []).map((team) => ({
+        id: team.id,
+        team_number: team.team_number,
+        name: `Team ${team.team_number}`,
+        icon: '⭐',
+        color: '#0f172a',
+      }));
+      if (resetTeams.length) {
+        const { error: teamResetError } = await db.from('teams').upsert(resetTeams, { onConflict: 'id' });
+        if (teamResetError) throw teamResetError;
+      }
+
+      const { data: settings, error: settingsError } = await db.from('hunt_settings').update({
+        status: 'draft',
+        starts_at: null,
+        ends_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', true).select('*').single();
+      if (settingsError) throw settingsError;
+
+      return Response.json({
+        ok: true,
+        participants_removed: true,
+        submissions_removed: true,
+        media_removed: true,
+        teams_reset: resetTeams.length,
+        settings,
+      }, { headers });
+    }
+
+    if (action === 'list-submissions') {
+      requireMethod(request, 'POST');
+      const status = databaseSubmissionStatus(body.status);
+      const before = paginationCursor(body.before);
+      let query = db.from('submissions').select(`
+        id,
+        created_at,
+        reviewed_at,
+        status,
+        media_path,
+        media_type,
+        bonus_units,
+        points_awarded,
+        note,
+        teams(name,icon,color),
+        participants(display_name,base_name),
+        challenges(title,base_points,bonus_points_per_unit,bonus_label)
+      `).eq('status', status).order('created_at', { ascending: false }).limit(31);
+      if (before) query = query.lt('created_at', before);
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = data || [];
+      const hasMore = rows.length > 30;
+      const page = rows.slice(0, 30);
+      const submissions = await withSignedMedia(page as Array<Record<string, any>>);
+      return Response.json({
+        submissions,
+        has_more: hasMore,
+        next_cursor: hasMore ? page[page.length - 1]?.created_at || null : null,
+      }, { headers });
+    }
+
+    if (action === 'review-submission') {
+      requireMethod(request, 'POST');
+      const id = validateChallengeId(body.id);
+      const decision = String(body.decision || '');
+      if (decision !== 'approved' && decision !== 'rejected') {
+        throw new Error('Review decision must be approved or rejected');
+      }
+      const { data, error } = await db.from('submissions').update({
+        status: decision,
+        reviewed_at: new Date().toISOString(),
+      }).eq('id', id).select('id,status,reviewed_at').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('Submission not found');
+      return Response.json({ submission: data }, { headers });
     }
 
     if (action === 'create-challenge') {

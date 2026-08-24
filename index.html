@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>YWAM Siem Reap Scavenger Hunt</title>
+  <title>The Amazing Race- Siem Reap Edition</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="app">
     <section class="hero">
       <div class="eyebrow">YWAM National Staff Conference</div>
-      <h1>Siem Reap Scavenger Hunt</h1>
+      <h1>The Amazing Race- Siem Reap Edition</h1>
       <p>Join your team. Explore the city. Climb the leaderboard.</p>
       <div id="huntStatus" class="hunt-status">Waiting to start</div>
     </section>
@@ -21,11 +21,38 @@
     <section id="joinView">
       <div class="card">
         <h2>Join the Hunt</h2>
-        <p class="muted">Enter your name and YWAM base/location. We’ll automatically place you on a team of 4–5.</p>
+        <p class="muted">Enter your name and select your province. We’ll automatically place you on a team of 4–5.</p>
         <label for="name">Your name</label>
         <input id="name" autocomplete="name" autocapitalize="words" placeholder="e.g. Andrew">
-        <label for="base">YWAM base / location</label>
-        <input id="base" autocapitalize="words" placeholder="e.g. Siem Reap, Poipet">
+        <label for="base">Province / municipality</label>
+        <select id="base" required>
+          <option value="" selected disabled>Select your province</option>
+          <option value="Banteay Meanchey">Banteay Meanchey</option>
+          <option value="Battambang">Battambang</option>
+          <option value="Kampong Cham">Kampong Cham</option>
+          <option value="Kampong Chhnang">Kampong Chhnang</option>
+          <option value="Kampong Speu">Kampong Speu</option>
+          <option value="Kampong Thom">Kampong Thom</option>
+          <option value="Kampot">Kampot</option>
+          <option value="Kandal">Kandal</option>
+          <option value="Kep">Kep</option>
+          <option value="Koh Kong">Koh Kong</option>
+          <option value="Kratie">Kratie</option>
+          <option value="Mondulkiri">Mondulkiri</option>
+          <option value="Oddar Meanchey">Oddar Meanchey</option>
+          <option value="Pailin">Pailin</option>
+          <option value="Phnom Penh">Phnom Penh</option>
+          <option value="Preah Sihanouk">Preah Sihanouk (Sihanoukville)</option>
+          <option value="Preah Vihear">Preah Vihear</option>
+          <option value="Prey Veng">Prey Veng</option>
+          <option value="Pursat">Pursat</option>
+          <option value="Ratanakiri">Ratanakiri</option>
+          <option value="Siem Reap">Siem Reap</option>
+          <option value="Stung Treng">Stung Treng</option>
+          <option value="Svay Rieng">Svay Rieng</option>
+          <option value="Takeo">Takeo</option>
+          <option value="Tboung Khmum">Tboung Khmum</option>
+        </select>
         <button id="joinBtn" class="primary">Find My Team</button>
         <div id="joinMsg"></div>
       </div>
@@ -123,6 +150,14 @@
         <button data-icon="🐒">🐒</button><button data-icon="🦜">🦜</button>
         <button data-icon="🥥">🥥</button><button data-icon="🌴">🌴</button>
         <button data-icon="⭐">⭐</button><button data-icon="🛺">🛺</button>
+        <button data-icon="🐬">🐬</button><button data-icon="🦎">🦎</button>
+        <button data-icon="🦚">🦚</button><button data-icon="🐉">🐉</button>
+        <button data-icon="🦁">🦁</button><button data-icon="🐼">🐼</button>
+        <button data-icon="🐸">🐸</button><button data-icon="🦋">🦋</button>
+        <button data-icon="🌺">🌺</button><button data-icon="🔥">🔥</button>
+        <button data-icon="⚡">⚡</button><button data-icon="🚀">🚀</button>
+        <button data-icon="🏆">🏆</button><button data-icon="🎯">🎯</button>
+        <button data-icon="🗺️">🗺️</button><button data-icon="🏁">🏁</button>
       </div>
 
       <label>Choose a color</label>
@@ -135,6 +170,14 @@
         <button data-color="#dc2626" aria-label="Red" style="--swatch:#dc2626"></button>
         <button data-color="#9333ea" aria-label="Purple" style="--swatch:#9333ea"></button>
         <button data-color="#db2777" aria-label="Pink" style="--swatch:#db2777"></button>
+        <button data-color="#0d9488" aria-label="Teal" style="--swatch:#0d9488"></button>
+        <button data-color="#0891b2" aria-label="Cyan" style="--swatch:#0891b2"></button>
+        <button data-color="#0284c7" aria-label="Sky" style="--swatch:#0284c7"></button>
+        <button data-color="#4f46e5" aria-label="Indigo" style="--swatch:#4f46e5"></button>
+        <button data-color="#7c3aed" aria-label="Violet" style="--swatch:#7c3aed"></button>
+        <button data-color="#65a30d" aria-label="Lime" style="--swatch:#65a30d"></button>
+        <button data-color="#d97706" aria-label="Amber" style="--swatch:#d97706"></button>
+        <button data-color="#e11d48" aria-label="Rose" style="--swatch:#e11d48"></button>
       </div>
 
       <div id="teamMsg"></div>
@@ -148,6 +191,5 @@
   <script src="js/timer.js"></script>
   <script src="js/team.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/challenge-bonus.js"></script>
 </body>
 </html>

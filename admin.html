@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
-  <title>Scavenger Hunt Admin</title>
+  <title>The Amazing Race Admin</title>
   <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
   <main class="admin-shell">
     <section id="authView" class="auth-card">
       <div class="brand">YWAM Siem Reap</div>
-      <h1>Scavenger Hunt Admin</h1>
+      <h1>The Amazing Race Admin</h1>
       <p id="authIntro" class="muted">Checking admin setup…</p>
       <label for="adminPassword">Admin password</label>
       <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Enter password">
@@ -23,7 +23,7 @@
       <header class="topbar">
         <div>
           <div class="eyebrow">ORGANIZER DASHBOARD</div>
-          <h1>Siem Reap Scavenger Hunt</h1>
+          <h1>The Amazing Race- Siem Reap Edition</h1>
         </div>
         <button id="logoutBtn" class="ghost">Log out</button>
       </header>
@@ -31,6 +31,10 @@
       <nav class="admin-tabs" aria-label="Admin sections">
         <button class="admin-tab active" data-admin-tab="overview" type="button">Overview</button>
         <button class="admin-tab" data-admin-tab="challenges" type="button">Challenges</button>
+        <button class="admin-tab" data-admin-tab="reviews" type="button">
+          Reviews <span id="reviewTabCount" class="tab-count hidden">0</span>
+        </button>
+        <button class="admin-tab" data-admin-tab="display" type="button">Live Screen</button>
       </nav>
 
       <div id="adminNotice" aria-live="polite"></div>
@@ -51,6 +55,7 @@
           <button id="startBtn" class="success-btn">▶ Start Hunt</button>
           <button id="endBtn" class="danger-btn">■ End Hunt</button>
           <button id="resetBtn" class="secondary">↺ Reset to Draft</button>
+          <a class="secondary button-link" href="join.html" target="_blank" rel="noopener">▦ Join QR</a>
         </section>
 
         <section class="stats-grid">
@@ -85,7 +90,82 @@
         </section>
       </section>
 
-      <p class="muted footnote">YWAM Scavenger Hunt v0.3</p>
+      <section id="reviewsPanel" class="admin-panel-view hidden">
+        <section class="panel review-manager">
+          <div class="row between review-heading">
+            <div>
+              <div class="eyebrow">SUBMISSION REVIEWS</div>
+              <h2>Review team evidence</h2>
+              <p class="muted">Only approved submissions add points or appear in the live feed.</p>
+            </div>
+            <button id="refreshReviews" class="secondary compact" type="button">Refresh</button>
+          </div>
+
+          <div class="review-filters" role="group" aria-label="Submission status">
+            <button class="review-filter active" data-review-status="pending" type="button">
+              Pending <span id="pendingReviewCount">0</span>
+            </button>
+            <button class="review-filter" data-review-status="approved" type="button">
+              Approved <span id="approvedReviewCount">0</span>
+            </button>
+            <button class="review-filter" data-review-status="rejected" type="button">
+              Rejected <span id="rejectedReviewCount">0</span>
+            </button>
+          </div>
+
+          <div id="reviewNotice" aria-live="polite"></div>
+          <div id="submissionList" class="submission-list"></div>
+          <button id="loadMoreSubmissions" class="secondary load-more hidden" type="button">Load more</button>
+        </section>
+      </section>
+
+      <section id="displayPanel" class="admin-panel-view hidden">
+        <div class="display-toolbar row between">
+          <div>
+            <div class="eyebrow">BIG-SCREEN DISPLAY</div>
+            <p class="muted">Leaderboard and approved moments update automatically.</p>
+          </div>
+          <button id="fullscreenDisplay" class="primary inline-primary" type="button">⛶ Full Screen</button>
+        </div>
+
+        <section id="liveDisplay" class="live-display" aria-label="Live hunt display">
+          <header class="live-display-header">
+            <div>
+              <div class="live-display-event">YWAM National Staff Conference</div>
+              <h2>The Amazing Race- Siem Reap Edition</h2>
+            </div>
+            <div class="display-clock-wrap">
+              <span class="live-badge"><i></i> LIVE</span>
+              <div id="displayTimer" class="display-timer">3:00:00</div>
+            </div>
+          </header>
+
+          <div class="display-grid">
+            <section class="display-board">
+              <div class="display-section-heading">
+                <span>🏆</span>
+                <div><div class="display-kicker">CURRENT STANDINGS</div><h3>Leaderboard</h3></div>
+              </div>
+              <div id="displayLeaders" class="display-leaders"></div>
+            </section>
+
+            <section class="display-board">
+              <div class="display-section-heading">
+                <span>📸</span>
+                <div><div class="display-kicker">LATEST APPROVED</div><h3>Race moments</h3></div>
+              </div>
+              <div id="displayFeed" class="display-feed"></div>
+            </section>
+          </div>
+
+          <footer class="display-footer">
+            <span id="displayParticipants">0 racers</span>
+            <span id="displayUpdated">Waiting for live updates…</span>
+          </footer>
+        </section>
+      </section>
+
+      <p class="muted footnote">The Amazing Race- Siem Reap Edition · v0.4</p>
     </section>
   </main>
 

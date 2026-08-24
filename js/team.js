@@ -1,1 +1,63 @@
-window.teamSelection={icon:'⭐',color:'#0f172a'};window.openTeamSettings=function(){const t=window.appState.team;document.getElementById('teamNameInput').value=t.name||'';window.teamSelection.icon=t.icon||'⭐';window.teamSelection.color=t.color||'#0f172a';document.querySelectorAll('#iconPicker button').forEach(b=>b.classList.toggle('selected',b.dataset.icon===window.teamSelection.icon));document.querySelectorAll('#colorPicker button').forEach(b=>b.classList.toggle('selected',b.dataset.color===window.teamSelection.color));document.getElementById('teamOverlay').classList.remove('hidden')};window.saveTeamSettings=async function(){const name=document.getElementById('teamNameInput').value.trim(),msg=document.getElementById('teamMsg'),btn=document.getElementById('saveTeamBtn');btn.disabled=true;try{await window.huntApi('update-team',{name,icon:window.teamSelection.icon,color:window.teamSelection.color});document.getElementById('teamOverlay').classList.add('hidden');await window.loadState()}catch(e){msg.innerHTML=`<div class='notice error'>${e.message}</div>`}finally{btn.disabled=false}};document.querySelectorAll('#iconPicker button').forEach(b=>b.onclick=()=>{window.teamSelection.icon=b.dataset.icon;document.querySelectorAll('#iconPicker button').forEach(x=>x.classList.toggle('selected',x===b))});document.querySelectorAll('#colorPicker button').forEach(b=>b.onclick=()=>{window.teamSelection.color=b.dataset.color;document.querySelectorAll('#colorPicker button').forEach(x=>x.classList.toggle('selected',x===b))});
+window.teamSelection = { icon: '⭐', color: '#0f172a' };
+
+function teamEscapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
+}
+
+window.openTeamSettings = function openTeamSettings() {
+  const team = window.appState.team;
+  document.getElementById('teamNameInput').value = team.name || '';
+  document.getElementById('teamMsg').innerHTML = '';
+  window.teamSelection.icon = team.icon || '⭐';
+  window.teamSelection.color = team.color || '#0f172a';
+  document.querySelectorAll('#iconPicker button').forEach((button) => {
+    button.classList.toggle('selected', button.dataset.icon === window.teamSelection.icon);
+  });
+  document.querySelectorAll('#colorPicker button').forEach((button) => {
+    button.classList.toggle('selected', button.dataset.color === window.teamSelection.color);
+  });
+  document.getElementById('teamOverlay').classList.remove('hidden');
+};
+
+window.saveTeamSettings = async function saveTeamSettings() {
+  const name = document.getElementById('teamNameInput').value.trim();
+  const message = document.getElementById('teamMsg');
+  const button = document.getElementById('saveTeamBtn');
+  button.disabled = true;
+  button.textContent = 'Saving…';
+  message.innerHTML = '';
+  try {
+    await window.huntApi('update-team', {
+      name,
+      icon: window.teamSelection.icon,
+      color: window.teamSelection.color,
+    });
+    document.getElementById('teamOverlay').classList.add('hidden');
+    await window.loadState();
+  } catch (error) {
+    message.innerHTML = `<div class="notice error">${teamEscapeHtml(error.message)}</div>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Save Team';
+  }
+};
+
+document.querySelectorAll('#iconPicker button').forEach((button) => {
+  button.addEventListener('click', () => {
+    window.teamSelection.icon = button.dataset.icon;
+    document.querySelectorAll('#iconPicker button').forEach((item) => {
+      item.classList.toggle('selected', item === button);
+    });
+  });
+});
+
+document.querySelectorAll('#colorPicker button').forEach((button) => {
+  button.addEventListener('click', () => {
+    window.teamSelection.color = button.dataset.color;
+    document.querySelectorAll('#colorPicker button').forEach((item) => {
+      item.classList.toggle('selected', item === button);
+    });
+  });
+});

@@ -28,42 +28,139 @@
         <button id="logoutBtn" class="ghost">Log out</button>
       </header>
 
-      <section class="status-panel">
-        <div>
-          <div class="eyebrow">HUNT STATUS</div>
-          <div id="adminStatus" class="status-value">Draft</div>
-        </div>
-        <div class="timer-wrap">
-          <div class="eyebrow">TIME REMAINING</div>
-          <div id="adminTimer" class="big-timer">3:00:00</div>
-        </div>
-      </section>
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <button class="admin-tab active" data-admin-tab="overview" type="button">Overview</button>
+        <button class="admin-tab" data-admin-tab="challenges" type="button">Challenges</button>
+      </nav>
 
-      <section class="controls">
-        <button id="startBtn" class="success-btn">▶ Start Hunt</button>
-        <button id="endBtn" class="danger-btn">■ End Hunt</button>
-        <button id="resetBtn" class="secondary">↺ Reset to Draft</button>
-      </section>
+      <div id="adminNotice" aria-live="polite"></div>
 
-      <section class="stats-grid">
-        <article><div class="eyebrow">PARTICIPANTS</div><div id="participantCount" class="stat">0</div></article>
-        <article><div class="eyebrow">TEAMS</div><div id="teamCount" class="stat">0</div></article>
-      </section>
-
-      <section class="panel">
-        <div class="row between">
+      <section id="overviewPanel" class="admin-panel-view">
+        <section class="status-panel">
           <div>
-            <div class="eyebrow">LEADERBOARD</div>
-            <h2>Top teams</h2>
+            <div class="eyebrow">HUNT STATUS</div>
+            <div id="adminStatus" class="status-value">Draft</div>
           </div>
-          <button id="refreshAdmin" class="secondary compact">Refresh</button>
-        </div>
-        <div id="adminLeaders"></div>
+          <div class="timer-wrap">
+            <div class="eyebrow">TIME REMAINING</div>
+            <div id="adminTimer" class="big-timer">3:00:00</div>
+          </div>
+        </section>
+
+        <section class="controls">
+          <button id="startBtn" class="success-btn">▶ Start Hunt</button>
+          <button id="endBtn" class="danger-btn">■ End Hunt</button>
+          <button id="resetBtn" class="secondary">↺ Reset to Draft</button>
+        </section>
+
+        <section class="stats-grid">
+          <article><div class="eyebrow">PARTICIPANTS</div><div id="participantCount" class="stat">0</div></article>
+          <article><div class="eyebrow">TEAMS</div><div id="teamCount" class="stat">0</div></article>
+        </section>
+
+        <section class="panel">
+          <div class="row between">
+            <div>
+              <div class="eyebrow">LEADERBOARD</div>
+              <h2>Top teams</h2>
+            </div>
+            <button id="refreshAdmin" class="secondary compact">Refresh</button>
+          </div>
+          <div id="adminLeaders"></div>
+        </section>
       </section>
 
-      <p class="muted footnote">v0.2 includes admin start/end/reset controls. Challenge editing comes next.</p>
+      <section id="challengesPanel" class="admin-panel-view hidden">
+        <section class="panel challenge-manager">
+          <div class="row between challenge-heading">
+            <div>
+              <div class="eyebrow">CHALLENGES</div>
+              <h2>Manage challenges</h2>
+              <p class="muted">Changes appear in the participant app on its next refresh.</p>
+            </div>
+            <button id="newChallengeBtn" class="primary inline-primary" type="button">+ New Challenge</button>
+          </div>
+          <div id="challengeSummary" class="muted small"></div>
+          <div id="challengeList" class="challenge-list"></div>
+        </section>
+      </section>
+
+      <p class="muted footnote">YWAM Scavenger Hunt v0.3</p>
     </section>
   </main>
+
+  <div id="challengeOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="challengeEditorTitle">
+    <form id="challengeForm" class="editor-card">
+      <div class="row between editor-header">
+        <div>
+          <div class="eyebrow">CHALLENGE EDITOR</div>
+          <h2 id="challengeEditorTitle">New Challenge</h2>
+        </div>
+        <button id="closeChallengeEditor" class="ghost compact icon-button" type="button" aria-label="Close challenge editor">✕</button>
+      </div>
+
+      <input id="challengeId" type="hidden">
+      <div id="challengeFormMsg" aria-live="polite"></div>
+
+      <label for="challengeTitle">Title</label>
+      <input id="challengeTitle" maxlength="120" required>
+
+      <label for="challengeDescription">Description</label>
+      <textarea id="challengeDescription" maxlength="1000" rows="4"></textarea>
+
+      <div class="form-grid">
+        <div>
+          <label for="challengeCategory">Category</label>
+          <input id="challengeCategory" list="challengeCategories" maxlength="60" required>
+          <datalist id="challengeCategories"></datalist>
+        </div>
+        <div>
+          <label for="challengeMediaKind">Media requirement</label>
+          <select id="challengeMediaKind" required>
+            <option value="photo">Photo</option>
+            <option value="video">Video</option>
+            <option value="either">Photo or video</option>
+          </select>
+        </div>
+        <div>
+          <label for="challengeBasePoints">Base points</label>
+          <input id="challengeBasePoints" type="number" min="0" max="10000" step="1" inputmode="numeric" required>
+        </div>
+        <div>
+          <label for="challengeSortOrder">Order position</label>
+          <input id="challengeSortOrder" type="number" min="0" max="100000" step="1" inputmode="numeric" required>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Bonus settings</legend>
+        <div class="form-grid bonus-grid">
+          <div>
+            <label for="challengeBonusPoints">Points per unit</label>
+            <input id="challengeBonusPoints" type="number" min="0" max="10000" step="1" inputmode="numeric" required>
+          </div>
+          <div>
+            <label for="challengeMaxBonusUnits">Maximum units</label>
+            <input id="challengeMaxBonusUnits" type="number" min="0" max="100" step="1" inputmode="numeric" required>
+          </div>
+        </div>
+        <label for="challengeBonusLabel">Bonus label</label>
+        <input id="challengeBonusLabel" maxlength="100" placeholder="e.g. strangers added">
+        <p class="muted small">Set points and maximum units to 0 to turn bonuses off.</p>
+      </fieldset>
+
+      <label class="toggle-row" for="challengeActive">
+        <input id="challengeActive" type="checkbox">
+        <span><b>Active</b><small>Active challenges are visible to participants.</small></span>
+      </label>
+
+      <div class="editor-actions">
+        <button id="saveChallengeBtn" class="primary inline-primary" type="submit">Save</button>
+        <button id="cancelChallengeBtn" class="secondary" type="button">Cancel</button>
+        <button id="toggleChallengeBtn" class="danger-btn hidden" type="button">Disable</button>
+      </div>
+    </form>
+  </div>
 
   <script src="js/admin.js"></script>
 </body>

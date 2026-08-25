@@ -30,11 +30,20 @@ test('all public pages use the official event title', async () => {
 });
 
 test('event cleanup is authenticated, explicitly confirmed, and empties media', async () => {
-  const source = await read('supabase/functions/hunt-admin-api/index.ts');
+  const [source, admin, html] = await Promise.all([
+    read('supabase/functions/hunt-admin-api/index.ts'),
+    read('js/admin.js'),
+    read('admin.html'),
+  ]);
   assert.match(source, /await requireAdmin\(request\)/);
   assert.match(source, /body\.confirm !== 'CLEAR GAMEPLAY DATA'/);
   assert.match(source, /storage\.emptyBucket\('hunt-media'\)/);
   assert.match(source, /status: 'draft'/);
+  assert.match(source, /\[clear-gameplay\] complete/);
+  assert.match(source, /Object\.values\(remaining\)/);
+  assert.match(admin, /api\('clear-gameplay', \{ confirm: 'CLEAR GAMEPLAY DATA' \}\)/);
+  assert.match(admin, /reviewItems = \[\]/);
+  assert.match(html, /Reset Game for New Play/);
 });
 
 test('team UI and server validation expose expanded choices', async () => {

@@ -62,8 +62,11 @@ The authenticated admin Edge Function exposes the maintenance action
 confirmation phrase `CLEAR GAMEPLAY DATA`. The action empties hunt media,
 removes participants and submissions, resets team names/icons/colors, and puts
 the hunt back in Draft without deleting challenges or changing the organizer
-password. Keep this action out of participant-facing code and run it only when
-an event-data reset is intentional.
+password. The organizer dashboard exposes this as **Reset Game for New Play**
+with a destructive-action warning, then verifies that participants,
+submissions, leaderboard rows, and activity are empty. Keep this action out of
+participant-facing code and run it only when an event-data reset is
+intentional.
 
 ## Test
 

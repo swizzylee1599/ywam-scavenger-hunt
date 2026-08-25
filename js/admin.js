@@ -532,13 +532,49 @@ async function huntAction(action) {
   }
 }
 
+async function resetGameForNewPlay() {
+  const warning = [
+    'RESET GAME FOR NEW PLAY?',
+    '',
+    'This permanently clears:',
+    '• participants and team assignments',
+    '• team names, icons, and colors',
+    '• submissions and uploaded photos/videos',
+    '• leaderboard scores and live feed',
+    '• the hunt timer',
+    '',
+    'Challenges and the organizer password are kept.',
+    '',
+    'This cannot be undone.',
+  ].join('\n');
+  if (!confirm(warning)) return;
+
+  const button = $('resetBtn');
+  setBusy(button, true, 'Resetting everything…');
+  adminMessage('');
+  try {
+    await api('clear-gameplay', { confirm: 'CLEAR GAMEPLAY DATA' });
+    reviewItems = [];
+    reviewCursor = null;
+    displayFeed = [];
+    selectedAdminTab = 'overview';
+    await loadDashboard();
+    setAdminTab('overview', false);
+    adminMessage('Game reset complete. Everything is ready for a new play.', 'success');
+  } catch (error) {
+    adminMessage('Reset failed: ' + error.message, 'error');
+  } finally {
+    setBusy(button, false, '');
+  }
+}
+
 $('authBtn').addEventListener('click', authenticate);
 $('adminPassword').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') authenticate();
 });
 $('startBtn').addEventListener('click', () => confirm('Start the 3-hour hunt now?') && huntAction('start'));
 $('endBtn').addEventListener('click', () => confirm('End the hunt now?') && huntAction('end'));
-$('resetBtn').addEventListener('click', () => confirm('Reset the hunt to Draft?') && huntAction('reset'));
+$('resetBtn').addEventListener('click', resetGameForNewPlay);
 $('refreshAdmin').addEventListener('click', async () => {
   try {
     await loadDashboard();

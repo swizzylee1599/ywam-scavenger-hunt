@@ -252,12 +252,34 @@ Deno.serve(async (request) => {
       }).eq('id', true).select('*').single();
       if (settingsError) throw settingsError;
 
+      const [participantsAfter, submissionsAfter, leadersAfter, activityAfter] = await Promise.all([
+        db.from('participants').select('id', { count: 'exact', head: true }),
+        db.from('submissions').select('id', { count: 'exact', head: true }),
+        db.from('leaderboard').select('team_id', { count: 'exact', head: true }),
+        db.from('activity_feed').select('id', { count: 'exact', head: true }),
+      ]);
+      for (const check of [participantsAfter, submissionsAfter, leadersAfter, activityAfter]) {
+        if (check.error) throw check.error;
+      }
+      const remaining = {
+        participants: participantsAfter.count || 0,
+        submissions: submissionsAfter.count || 0,
+        leaderboard: leadersAfter.count || 0,
+        activity: activityAfter.count || 0,
+      };
+      if (Object.values(remaining).some((count) => count !== 0)) {
+        console.error('[clear-gameplay] verification failed', remaining);
+        throw new Error('Reset verification failed; refresh and try again');
+      }
+      console.log('[clear-gameplay] complete', { teams_reset: resetTeams.length, ...remaining });
+
       return Response.json({
         ok: true,
         participants_removed: true,
         submissions_removed: true,
         media_removed: true,
         teams_reset: resetTeams.length,
+        remaining,
         settings,
       }, { headers });
     }
@@ -378,14 +400,7 @@ Deno.serve(async (request) => {
 
     if (action === 'reset') {
       requireMethod(request, 'POST');
-      const { data, error } = await db.from('hunt_settings').update({
-        status: 'draft',
-        starts_at: null,
-        ends_at: null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', true).select('*').single();
-      if (error) throw error;
-      return Response.json({ settings: data }, { headers });
+      throw new Error('Refresh the admin dashboard and use Reset Game for New Play');
     }
 
     throw new Error('Unknown action');

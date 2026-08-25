@@ -30,6 +30,7 @@
 
       <nav class="admin-tabs" aria-label="Admin sections">
         <button class="admin-tab active" data-admin-tab="overview" type="button">Overview</button>
+        <button class="admin-tab" data-admin-tab="control" type="button">Race Control</button>
         <button class="admin-tab" data-admin-tab="challenges" type="button">Challenges</button>
         <button class="admin-tab" data-admin-tab="reviews" type="button">
           Reviews <span id="reviewTabCount" class="tab-count hidden">0</span>
@@ -73,6 +74,33 @@
             <button id="refreshAdmin" class="secondary compact">Refresh</button>
           </div>
           <div id="adminLeaders"></div>
+        </section>
+      </section>
+
+      <section id="controlPanel" class="admin-panel-view hidden">
+        <div id="controlNotice" aria-live="polite"></div>
+        <section class="panel control-panel">
+          <div class="eyebrow">LIVE ANNOUNCEMENT</div>
+          <h2>Send a message to every team</h2>
+          <p class="muted">The announcement appears in the participant app within about seven seconds and on the Live Screen.</p>
+          <label for="announcementMessage">Message</label>
+          <textarea id="announcementMessage" maxlength="240" rows="3" placeholder="e.g. Only one hour left — finish strong!"></textarea>
+          <label for="announcementMessageKm">Khmer translation (optional)</label>
+          <textarea id="announcementMessageKm" maxlength="240" rows="2" placeholder="បញ្ចូលសារជាភាសាខ្មែរ"></textarea>
+          <button id="sendAnnouncementBtn" class="primary inline-primary" type="button">📣 Send to All Teams</button>
+        </section>
+
+        <section class="panel control-panel">
+          <div class="eyebrow">TIMED MYSTERY CHALLENGES</div>
+          <h2>Release a surprise challenge</h2>
+          <p class="muted">Create mystery challenges in the Challenges tab. They stay hidden until you release them here.</p>
+          <div id="mysteryControlList" class="mystery-control-list"></div>
+        </section>
+
+        <section class="panel control-panel">
+          <div class="eyebrow">RECENT MESSAGES</div>
+          <h2>Announcement history</h2>
+          <div id="announcementHistory" class="announcement-history"></div>
         </section>
       </section>
 
@@ -141,6 +169,8 @@
             </div>
           </header>
 
+          <div id="displayAnnouncement" class="display-announcement hidden"></div>
+
           <div class="display-grid">
             <section class="display-board">
               <div class="display-section-heading">
@@ -166,7 +196,7 @@
         </section>
       </section>
 
-      <p class="muted footnote">The Amazing Race- Siem Reap Edition · v0.4</p>
+      <p class="muted footnote">The Amazing Race- Siem Reap Edition · v0.5</p>
     </section>
   </main>
 
@@ -233,6 +263,11 @@
       <label class="toggle-row" for="challengeActive">
         <input id="challengeActive" type="checkbox">
         <span><b>Active</b><small>Active challenges are visible to participants.</small></span>
+      </label>
+
+      <label class="toggle-row" for="challengeMystery">
+        <input id="challengeMystery" type="checkbox">
+        <span><b>Timed mystery challenge</b><small>Hidden from participants until released from Race Control.</small></span>
       </label>
 
       <div class="editor-actions">

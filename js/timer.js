@@ -13,10 +13,12 @@ window.renderParticipantTimer = function renderParticipantTimer(settings) {
   const status = document.getElementById('huntStatus');
   const time = document.getElementById('countdown');
   const subtitle = document.getElementById('countdownSub');
+  const box = time.closest('.countdown-box');
 
   if (window.timerInterval) clearInterval(window.timerInterval);
 
   if (!settings || settings.status === 'draft') {
+    box.classList.remove('final-countdown');
     status.textContent = window.t('timer.waitingStatus');
     time.textContent = '3:00:00';
     subtitle.textContent = window.t('timer.waiting');
@@ -24,6 +26,7 @@ window.renderParticipantTimer = function renderParticipantTimer(settings) {
   }
 
   if (settings.status === 'closed') {
+    box.classList.remove('final-countdown');
     status.textContent = window.t('timer.finished');
     time.textContent = '0:00:00';
     subtitle.textContent = window.t('timer.final');
@@ -34,7 +37,16 @@ window.renderParticipantTimer = function renderParticipantTimer(settings) {
   const tick = () => {
     const remaining = new Date(settings.ends_at) - Date.now();
     time.textContent = window.formatRemaining(remaining);
-    subtitle.textContent = remaining > 0 ? window.t('timer.go') : window.t('timer.timesUp');
+    box.classList.toggle('final-countdown', remaining > 0 && remaining <= 10 * 60 * 1000);
+    subtitle.textContent = remaining <= 0
+      ? window.t('timer.timesUp')
+      : remaining <= 60 * 1000
+        ? window.t('timer.finalMinute')
+        : remaining <= 5 * 60 * 1000
+          ? window.t('timer.finalFive')
+          : remaining <= 10 * 60 * 1000
+            ? window.t('timer.finalTen')
+            : window.t('timer.go');
   };
   tick();
   window.timerInterval = setInterval(tick, 1000);

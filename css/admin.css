@@ -62,6 +62,17 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid r
 .meta-pill,.state-pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:12px;font-weight:750}
 .state-pill.active{background:#dcfce7;color:#166534}
 .state-pill.inactive{background:#e2e8f0;color:#475569}
+.state-pill.mystery{background:#ede9fe;color:#6d28d9}
+.control-panel h2{margin:4px 0 6px}
+.control-panel textarea{min-height:76px}
+.mystery-control-list,.announcement-history{display:grid;gap:10px;margin-top:14px}
+.mystery-control-row{display:grid;grid-template-columns:minmax(0,1fr) 130px auto;align-items:center;gap:10px;padding:14px;border:1px solid #e2e8f0;border-radius:15px}
+.mystery-control-row h3{margin:0 0 4px}
+.mystery-control-row select{margin:0}
+.mystery-status{font-size:12px;font-weight:850;color:#6d28d9}
+.announcement-history article{padding:12px 14px;border-left:4px solid #2563eb;border-radius:10px;background:#f8fafc}
+.announcement-history article.mystery{border-left-color:#7c3aed;background:#f5f3ff}
+.announcement-history time{display:block;margin-top:5px;color:#64748b;font-size:11px}
 .overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.62);overflow:auto}
 .editor-card{width:min(720px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(15,23,42,.28)}
 .editor-header{position:sticky;top:-22px;z-index:2;margin:-22px -22px 6px;padding:22px;background:#fff;border-radius:22px 22px 0 0;border-bottom:1px solid #e2e8f0}
@@ -113,6 +124,11 @@ body.modal-open{overflow:hidden}
 .live-badge i{width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 5px rgba(239,68,68,.18);animation:live-pulse 1.5s infinite}
 @keyframes live-pulse{50%{opacity:.45;transform:scale(.82)}}
 .display-timer{font-size:clamp(32px,4vw,58px);font-weight:950;font-variant-numeric:tabular-nums;line-height:1}
+.display-announcement{margin-top:18px;padding:15px 18px;border:1px solid rgba(250,204,21,.65);border-radius:15px;background:linear-gradient(90deg,rgba(245,158,11,.3),rgba(124,58,237,.25));font-size:clamp(18px,2vw,28px);font-weight:950;text-align:center}
+.status-panel.final-countdown,.live-display.final-countdown{background:radial-gradient(circle at 85% 0,rgba(239,68,68,.42),transparent 42%),linear-gradient(145deg,#450a0a,#7f1d1d 60%,#991b1b)}
+.final-countdown .big-timer,.final-countdown .display-timer{color:#fef08a;animation:countdown-pulse 1s ease-in-out infinite}
+@keyframes countdown-pulse{50%{transform:scale(1.035);text-shadow:0 0 22px rgba(254,240,138,.5)}}
+@media(prefers-reduced-motion:reduce){.final-countdown .big-timer,.final-countdown .display-timer{animation:none}}
 .display-grid{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(420px,1.4fr);gap:18px;margin-top:20px}
 .display-board{min-width:0;padding:20px;border:1px solid rgba(255,255,255,.13);border-radius:20px;background:rgba(255,255,255,.065);backdrop-filter:blur(12px)}
 .display-section-heading{display:flex;align-items:center;gap:11px;margin-bottom:13px}
@@ -153,6 +169,8 @@ body.modal-open{overflow:hidden}
   .challenge-heading .inline-primary{width:100%}
   .challenge-row{grid-template-columns:1fr}
   .challenge-row .secondary{width:100%}
+  .mystery-control-row{grid-template-columns:1fr}
+  .mystery-control-row button{width:100%}
   .overlay{align-items:flex-end;padding:0}
   .editor-card{max-height:92vh;border-radius:22px 22px 0 0;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
   .editor-header{top:-18px;margin:-18px -18px 4px;padding:18px;border-radius:22px 22px 0 0}

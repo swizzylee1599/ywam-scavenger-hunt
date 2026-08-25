@@ -29,6 +29,8 @@ export function validateChallenge(input) {
   }
 
   if (typeof input?.is_active !== 'boolean') throw new Error('Active status must be true or false');
+  const isMystery = input?.is_mystery ?? false;
+  if (typeof isMystery !== 'boolean') throw new Error('Mystery status must be true or false');
 
   const basePoints = integer(input.base_points, 'Base points', 10000);
   const bonusPoints = integer(input.bonus_points_per_unit, 'Bonus points per unit', 10000);
@@ -57,6 +59,7 @@ export function validateChallenge(input) {
     bonus_label: bonusEnabled ? bonusLabel : null,
     sort_order: sortOrder,
     is_active: input.is_active,
+    is_mystery: isMystery,
   };
 }
 

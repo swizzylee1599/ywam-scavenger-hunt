@@ -64,6 +64,7 @@ const authMessage = (message, type = 'error') => showMessage($('authMsg'), messa
 const adminMessage = (message, type = 'success') => showMessage($('adminNotice'), message, type);
 const formMessage = (message, type = 'error') => showMessage($('challengeFormMsg'), message, type);
 const reviewMessage = (message, type = 'error') => showMessage($('reviewNotice'), message, type);
+const controlMessage = (message, type = 'error') => showMessage($('controlNotice'), message, type);
 
 function setBusy(button, busy, busyText) {
   if (!button.dataset.defaultText) button.dataset.defaultText = button.textContent;
@@ -152,6 +153,7 @@ function renderDashboard() {
     </div>
   `).join('') || '<p class="muted">No scores yet.</p>';
   renderReviewCounts();
+  renderRaceControl();
   renderChallenges();
   renderLiveDisplay();
   startAdminTimer(settings);
@@ -173,9 +175,14 @@ function startAdminTimer(settings) {
       const value = settings.status === 'closed' ? '0:00:00' : '3:00:00';
       $('adminTimer').textContent = value;
       $('displayTimer').textContent = value;
+      document.querySelector('.status-panel').classList.remove('final-countdown');
+      $('liveDisplay').classList.remove('final-countdown');
       return;
     }
     const milliseconds = Math.max(0, new Date(settings.ends_at) - Date.now());
+    const finalCountdown = milliseconds > 0 && milliseconds <= 10 * 60 * 1000;
+    document.querySelector('.status-panel').classList.toggle('final-countdown', finalCountdown);
+    $('liveDisplay').classList.toggle('final-countdown', finalCountdown);
     const totalSeconds = Math.floor(milliseconds / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -218,6 +225,11 @@ function renderLiveDisplay() {
   }).join('') || '<div class="display-empty">Approved photos and videos will appear here live.</div>';
 
   $('displayParticipants').textContent = `${Number(state.participant_count) || 0} racers · ${Number(state.team_count) || 0} teams`;
+  const latestAnnouncement = (state.announcements || [])[0];
+  $('displayAnnouncement').textContent = latestAnnouncement
+    ? `${latestAnnouncement.kind === 'mystery' ? '🔓' : '📣'} ${latestAnnouncement.message}`
+    : '';
+  $('displayAnnouncement').classList.toggle('hidden', !latestAnnouncement);
 }
 
 async function loadDisplayFeed() {
@@ -243,6 +255,92 @@ async function refreshAdminLive() {
   }
 }
 
+function mysteryReleaseState(challenge) {
+  const now = Date.now();
+  const releasedAt = challenge.released_at ? new Date(challenge.released_at).getTime() : 0;
+  const expiresAt = challenge.expires_at ? new Date(challenge.expires_at).getTime() : 0;
+  if (releasedAt && expiresAt > now) {
+    return { label: `Live · ${Math.max(1, Math.ceil((expiresAt - now) / 60000))} min left`, button: 'Restart Timer' };
+  }
+  if (releasedAt) return { label: 'Expired', button: 'Release Again' };
+  return { label: 'Waiting to release', button: 'Release Now' };
+}
+
+function renderRaceControl() {
+  const mysteries = (state.challenges || []).filter((challenge) => challenge.is_mystery);
+  $('mysteryControlList').innerHTML = mysteries.map((challenge) => {
+    const release = mysteryReleaseState(challenge);
+    return `
+      <article class="mystery-control-row">
+        <div>
+          <h3>🔐 ${escapeHtml(challenge.title)}</h3>
+          <div class="mystery-status">${challenge.is_active ? escapeHtml(release.label) : 'Inactive — re-enable before release'}</div>
+        </div>
+        <select data-mystery-duration="${challenge.id}" aria-label="Duration for ${escapeHtml(challenge.title)}">
+          <option value="10">10 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="20" selected>20 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">60 minutes</option>
+        </select>
+        <button class="${challenge.is_active ? 'success-btn' : 'secondary'}" type="button" data-release-mystery="${challenge.id}" ${challenge.is_active ? '' : 'disabled'}>${escapeHtml(release.button)}</button>
+      </article>
+    `;
+  }).join('') || '<p class="muted">No mystery challenges yet. Create one in the Challenges tab.</p>';
+
+  document.querySelectorAll('[data-release-mystery]').forEach((button) => {
+    button.addEventListener('click', () => releaseMystery(button.dataset.releaseMystery, button));
+  });
+
+  $('announcementHistory').innerHTML = (state.announcements || []).map((announcement) => `
+    <article class="${announcement.kind === 'mystery' ? 'mystery' : ''}">
+      <b>${announcement.kind === 'mystery' ? '🔓 Mystery release' : '📣 Announcement'}</b>
+      <div>${escapeHtml(announcement.message)}</div>
+      <time>${new Date(announcement.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time>
+    </article>
+  `).join('') || '<p class="muted">No announcements sent yet.</p>';
+}
+
+async function sendAnnouncement() {
+  const message = $('announcementMessage').value.trim();
+  const messageKm = $('announcementMessageKm').value.trim();
+  if (!message) return controlMessage('Enter an announcement first.');
+  const button = $('sendAnnouncementBtn');
+  setBusy(button, true, 'Sending…');
+  controlMessage('');
+  try {
+    await api('send-announcement', { message, message_km: messageKm });
+    $('announcementMessage').value = '';
+    $('announcementMessageKm').value = '';
+    await loadDashboard();
+    setAdminTab('control', false);
+    controlMessage('Announcement sent to every team.', 'success');
+  } catch (error) {
+    controlMessage(error.message);
+  } finally {
+    setBusy(button, false, '');
+  }
+}
+
+async function releaseMystery(id, button) {
+  const challenge = (state.challenges || []).find((item) => item.id === id);
+  const duration = Number(document.querySelector(`[data-mystery-duration="${id}"]`)?.value || 20);
+  if (!challenge || !confirm(`Release “${challenge.title}” to every team for ${duration} minutes?`)) return;
+  setBusy(button, true, 'Releasing…');
+  controlMessage('');
+  try {
+    await api('release-mystery', { id, duration_minutes: duration });
+    await loadDashboard();
+    setAdminTab('control', false);
+    controlMessage(`Mystery challenge released for ${duration} minutes.`, 'success');
+  } catch (error) {
+    controlMessage(error.message);
+  } finally {
+    setBusy(button, false, '');
+  }
+}
+
 function renderChallenges() {
   const challenges = state.challenges || [];
   const activeCount = challenges.filter((challenge) => challenge.is_active).length;
@@ -259,12 +357,14 @@ function renderChallenges() {
       : 'No bonus';
     const media = challenge.media_kind === 'either' ? 'Photo or video' : challenge.media_kind;
     const stateLabel = challenge.is_active ? 'Active' : 'Inactive';
+    const mystery = challenge.is_mystery ? mysteryReleaseState(challenge) : null;
     return `
       <article class="challenge-row ${challenge.is_active ? '' : 'inactive'}">
         <div>
           <div class="challenge-title-line">
             <h3>${escapeHtml(challenge.title)}</h3>
             <span class="state-pill ${challenge.is_active ? 'active' : 'inactive'}">${stateLabel}</span>
+            ${challenge.is_mystery ? `<span class="state-pill mystery">🔐 ${escapeHtml(mystery.label)}</span>` : ''}
           </div>
           <div class="challenge-meta">
             <span class="meta-pill">#${challenge.sort_order}</span>
@@ -309,6 +409,7 @@ function openChallengeEditor(id = '') {
   $('challengeMaxBonusUnits').value = editingChallenge?.max_bonus_units ?? 0;
   $('challengeBonusLabel').value = editingChallenge?.bonus_label || '';
   $('challengeActive').checked = editingChallenge?.is_active ?? true;
+  $('challengeMystery').checked = editingChallenge?.is_mystery ?? false;
 
   const toggleButton = $('toggleChallengeBtn');
   toggleButton.classList.toggle('hidden', !editingChallenge);
@@ -340,6 +441,7 @@ function challengePayload() {
     max_bonus_units: Number($('challengeMaxBonusUnits').value),
     bonus_label: $('challengeBonusLabel').value,
     is_active: $('challengeActive').checked,
+    is_mystery: $('challengeMystery').checked,
   };
 }
 
@@ -510,9 +612,10 @@ async function reviewSubmission(id, decision, button) {
 }
 
 function setAdminTab(tab, loadReviews = true) {
-  const selected = ['overview', 'challenges', 'reviews', 'display'].includes(tab) ? tab : 'overview';
+  const selected = ['overview', 'control', 'challenges', 'reviews', 'display'].includes(tab) ? tab : 'overview';
   selectedAdminTab = selected;
   $('overviewPanel').classList.toggle('hidden', selected !== 'overview');
+  $('controlPanel').classList.toggle('hidden', selected !== 'control');
   $('challengesPanel').classList.toggle('hidden', selected !== 'challenges');
   $('reviewsPanel').classList.toggle('hidden', selected !== 'reviews');
   $('displayPanel').classList.toggle('hidden', selected !== 'display');
@@ -619,6 +722,7 @@ $('fullscreenDisplay').addEventListener('click', async () => {
   }
 });
 $('newChallengeBtn').addEventListener('click', () => openChallengeEditor());
+$('sendAnnouncementBtn').addEventListener('click', sendAnnouncement);
 $('challengeForm').addEventListener('submit', saveChallenge);
 $('cancelChallengeBtn').addEventListener('click', closeChallengeEditor);
 $('closeChallengeEditor').addEventListener('click', closeChallengeEditor);

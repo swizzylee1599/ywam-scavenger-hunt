@@ -26,6 +26,25 @@ function publicStatus(status: string) {
   return status === 'flagged' ? 'pending' : status;
 }
 
+function visibleChallenges(rows: Array<Record<string, any>>) {
+  const now = Date.now();
+  return rows.filter((challenge) => !challenge.is_mystery || (
+    challenge.released_at
+    && challenge.expires_at
+    && new Date(challenge.released_at).getTime() <= now
+    && new Date(challenge.expires_at).getTime() > now
+  ));
+}
+
+function currentAnnouncements(rows: Array<Record<string, any>>, settings: Record<string, any>) {
+  const now = Date.now();
+  const startsAt = settings?.starts_at ? new Date(settings.starts_at).getTime() : 0;
+  return rows.filter((announcement) => (
+    new Date(announcement.created_at).getTime() >= startsAt
+    && (!announcement.expires_at || new Date(announcement.expires_at).getTime() > now)
+  ));
+}
+
 function extensionFor(mediaType: string, mime: string) {
   if (mediaType === 'video') {
     if (mime === 'video/quicktime') return 'mov';
@@ -94,7 +113,7 @@ Deno.serve(async (request) => {
 
     if (action === 'state') {
       requireMethod(request, 'GET');
-      const [teamResult, membersResult, challengesResult, submissionsResult, leadersResult, feedResult, settingsResult] = await Promise.all([
+      const [teamResult, membersResult, challengesResult, submissionsResult, leadersResult, feedResult, settingsResult, announcementsResult] = await Promise.all([
         db.from('teams').select('*').eq('id', participant.team_id).single(),
         db.from('participants').select('display_name,base_name').eq('team_id', participant.team_id),
         db.from('challenges').select('*').eq('is_active', true).order('sort_order'),
@@ -102,8 +121,9 @@ Deno.serve(async (request) => {
         db.from('leaderboard').select('*').order('score', { ascending: false }).order('challenges_completed', { ascending: false }),
         db.from('activity_feed').select('*').order('created_at', { ascending: false }).limit(20),
         db.from('hunt_settings').select('*').eq('id', true).single(),
+        db.from('hunt_announcements').select('*').order('created_at', { ascending: false }).limit(10),
       ]);
-      for (const result of [teamResult, membersResult, challengesResult, submissionsResult, leadersResult, feedResult, settingsResult]) {
+      for (const result of [teamResult, membersResult, challengesResult, submissionsResult, leadersResult, feedResult, settingsResult, announcementsResult]) {
         if (result.error) throw result.error;
       }
 
@@ -116,33 +136,41 @@ Deno.serve(async (request) => {
         }
       }
       const feed = await signRows((feedResult.data || []) as Array<Record<string, any>>);
+      const challenges = visibleChallenges((challengesResult.data || []) as Array<Record<string, any>>);
+      const visibleChallengeIds = new Set(challenges.map((challenge) => challenge.id));
       const completed = (submissionsResult.data || [])
-        .filter((submission: any) => submission.status === 'approved')
+        .filter((submission: any) => submission.status === 'approved' && visibleChallengeIds.has(submission.challenge_id))
         .map((submission: any) => submission.challenge_id);
 
       return Response.json({
         participant,
         team: teamResult.data,
         members: membersResult.data || [],
-        challenges: challengesResult.data || [],
+        challenges,
         completed,
         submission_statuses: submissionStatuses,
         submission_notes: submissionNotes,
         leaders: leadersResult.data || [],
         feed,
         settings: settingsResult.data,
+        announcements: currentAnnouncements(
+          (announcementsResult.data || []) as Array<Record<string, any>>,
+          settingsResult.data,
+        ),
       }, { headers });
     }
 
     if (action === 'live') {
       requireMethod(request, 'GET');
-      const [submissionsResult, leadersResult, feedResult, settingsResult] = await Promise.all([
+      const [submissionsResult, leadersResult, feedResult, settingsResult, challengesResult, announcementsResult] = await Promise.all([
         db.from('submissions').select('challenge_id,status,note,created_at').eq('team_id', participant.team_id),
         db.from('leaderboard').select('*').order('score', { ascending: false }).order('challenges_completed', { ascending: false }),
         db.from('activity_feed').select('id').order('created_at', { ascending: false }).limit(20),
         db.from('hunt_settings').select('*').eq('id', true).single(),
+        db.from('challenges').select('id,is_mystery,released_at,expires_at,sort_order').eq('is_active', true).order('sort_order'),
+        db.from('hunt_announcements').select('*').order('created_at', { ascending: false }).limit(10),
       ]);
-      for (const result of [submissionsResult, leadersResult, feedResult, settingsResult]) {
+      for (const result of [submissionsResult, leadersResult, feedResult, settingsResult, challengesResult, announcementsResult]) {
         if (result.error) throw result.error;
       }
 
@@ -154,8 +182,11 @@ Deno.serve(async (request) => {
           submissionNotes[submission.challenge_id] = submission.note;
         }
       }
+      const visibleChallengeIds = visibleChallenges((challengesResult.data || []) as Array<Record<string, any>>)
+        .map((challenge) => challenge.id);
+      const visibleChallengeIdSet = new Set(visibleChallengeIds);
       const completed = (submissionsResult.data || [])
-        .filter((submission: any) => submission.status === 'approved')
+        .filter((submission: any) => submission.status === 'approved' && visibleChallengeIdSet.has(submission.challenge_id))
         .map((submission: any) => submission.challenge_id);
 
       return Response.json({
@@ -164,7 +195,12 @@ Deno.serve(async (request) => {
         submission_notes: submissionNotes,
         leaders: leadersResult.data || [],
         feed_ids: (feedResult.data || []).map((item: any) => item.id),
+        challenge_ids: visibleChallengeIds,
         settings: settingsResult.data,
+        announcements: currentAnnouncements(
+          (announcementsResult.data || []) as Array<Record<string, any>>,
+          settingsResult.data,
+        ),
       }, { headers });
     }
 

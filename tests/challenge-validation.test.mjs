@@ -20,6 +20,7 @@ const valid = {
   bonus_label: 'strangers added',
   sort_order: 70,
   is_active: true,
+  is_mystery: false,
 };
 
 test('normalizes a valid challenge and preserves writable values', () => {
@@ -36,9 +37,15 @@ test('allows a challenge without bonus settings and clears its label', () => {
   assert.equal(challenge.bonus_label, null);
 });
 
+test('older admin clients create ordinary challenges when mystery status is omitted', () => {
+  const { is_mystery: _ignored, ...olderPayload } = valid;
+  assert.equal(validateChallenge(olderPayload).is_mystery, false);
+});
+
 test('rejects invalid media kinds', () => {
   assert.throws(() => validateChallenge({ ...valid, media_kind: 'audio' }), /photo, video, or either/);
   assert.throws(() => validateChallenge({ ...valid, is_active: 'true' }), /true or false/);
+  assert.throws(() => validateChallenge({ ...valid, is_mystery: 'true' }), /Mystery status/);
 });
 
 test('rejects fractional, negative, and excessive point values', () => {

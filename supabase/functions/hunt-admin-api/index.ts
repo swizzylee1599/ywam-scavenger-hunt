@@ -79,6 +79,21 @@ const rejectionReasons = new Set([
   'other_retry',
 ]);
 
+function announcementText(value: unknown, field: string, required = true) {
+  const message = String(value || '').trim();
+  if (required && !message) throw new Error(`${field} is required`);
+  if (message.length > 240) throw new Error(`${field} must be 240 characters or fewer`);
+  return message || null;
+}
+
+function mysteryDuration(value: unknown) {
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes) || minutes < 5 || minutes > 180) {
+    throw new Error('Mystery duration must be a whole number from 5 to 180 minutes');
+  }
+  return minutes;
+}
+
 function paginationCursor(value: unknown) {
   if (value == null || value === '') return null;
   const date = new Date(String(value));
@@ -170,31 +185,33 @@ Deno.serve(async (request) => {
 
     if (action === 'state') {
       requireMethod(request, 'GET');
-      const [settings, participants, teams, leaders, challenges, pending, approved, rejected, latestActivity] = await Promise.all([
+      const [settings, participants, leaders, challenges, pending, approved, rejected, latestActivity, announcements] = await Promise.all([
         getSettings(),
-        db.from('participants').select('id', { count: 'exact', head: true }),
-        db.from('teams').select('id', { count: 'exact', head: true }),
+        db.from('participants').select('id,team_id'),
         db.from('leaderboard').select('*').order('score', { ascending: false }).limit(10),
         db.from('challenges').select('*').order('sort_order').order('created_at'),
         db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'flagged'),
         db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
         db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
         db.from('activity_feed').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        db.from('hunt_announcements').select('*').order('created_at', { ascending: false }).limit(8),
       ]);
       if (participants.error) throw participants.error;
-      if (teams.error) throw teams.error;
       if (leaders.error) throw leaders.error;
       if (challenges.error) throw challenges.error;
       if (pending.error) throw pending.error;
       if (approved.error) throw approved.error;
       if (rejected.error) throw rejected.error;
       if (latestActivity.error) throw latestActivity.error;
+      if (announcements.error) throw announcements.error;
+      const participantRows = participants.data || [];
       return Response.json({
         settings,
-        participant_count: participants.count || 0,
-        team_count: teams.count || 0,
+        participant_count: participantRows.length,
+        team_count: new Set(participantRows.map((participant) => participant.team_id)).size,
         leaders: leaders.data || [],
         challenges: challenges.data || [],
+        announcements: announcements.data || [],
         submission_counts: {
           pending: pending.count || 0,
           approved: approved.count || 0,
@@ -216,6 +233,61 @@ Deno.serve(async (request) => {
       }, { headers });
     }
 
+    if (action === 'send-announcement') {
+      requireMethod(request, 'POST');
+      const settings = await getSettings();
+      if (settings.status !== 'open') throw new Error('Start the hunt before sending a live announcement');
+      const message = announcementText(body.message, 'Announcement');
+      const messageKm = announcementText(body.message_km, 'Khmer translation', false);
+      const { data, error } = await db.from('hunt_announcements').insert({
+        message,
+        message_km: messageKm,
+        kind: 'announcement',
+        expires_at: settings.ends_at,
+      }).select('*').single();
+      if (error) throw error;
+      return Response.json({ announcement: data }, { headers });
+    }
+
+    if (action === 'release-mystery') {
+      requireMethod(request, 'POST');
+      const settings = await getSettings();
+      if (settings.status !== 'open') throw new Error('Start the hunt before releasing a mystery challenge');
+      const id = validateChallengeId(body.id);
+      const durationMinutes = mysteryDuration(body.duration_minutes);
+      const { data: challenge, error: challengeError } = await db.from('challenges')
+        .select('*').eq('id', id).maybeSingle();
+      if (challengeError) throw challengeError;
+      if (!challenge) throw new Error('Challenge not found');
+      if (!challenge.is_active) throw new Error('Re-enable this challenge before releasing it');
+      if (!challenge.is_mystery) throw new Error('Only mystery challenges can be released');
+
+      const releasedAt = new Date();
+      const huntEndsAt = settings.ends_at ? new Date(settings.ends_at).getTime() : Number.POSITIVE_INFINITY;
+      const requestedExpiry = releasedAt.getTime() + durationMinutes * 60 * 1000;
+      const expiresAt = new Date(Math.min(requestedExpiry, huntEndsAt));
+      if (expiresAt.getTime() <= releasedAt.getTime()) throw new Error('The hunt has already ended');
+
+      const { data: released, error: releaseError } = await db.from('challenges').update({
+        released_at: releasedAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+      }).eq('id', id).select('*').single();
+      if (releaseError) throw releaseError;
+
+      const { data: announcement, error: announcementError } = await db.from('hunt_announcements').insert({
+        message: `Mystery challenge unlocked: ${challenge.title}`,
+        message_km: `បេសកកម្មអាថ៌កំបាំងបានបើក៖ ${challenge.title}`,
+        kind: 'mystery',
+        challenge_id: id,
+        expires_at: expiresAt.toISOString(),
+      }).select('*').single();
+      if (announcementError) {
+        await db.from('challenges').update({ released_at: null, expires_at: null }).eq('id', id);
+        throw announcementError;
+      }
+      return Response.json({ challenge: released, announcement }, { headers });
+    }
+
     if (action === 'clear-gameplay') {
       requireMethod(request, 'POST');
       if (body.confirm !== 'CLEAR GAMEPLAY DATA') {
@@ -229,6 +301,13 @@ Deno.serve(async (request) => {
       if (submissionError) throw submissionError;
       const { error: participantDeleteError } = await db.from('participants').delete().not('id', 'is', null);
       if (participantDeleteError) throw participantDeleteError;
+      const { error: announcementDeleteError } = await db.from('hunt_announcements').delete().not('id', 'is', null);
+      if (announcementDeleteError) throw announcementDeleteError;
+      const { error: mysteryResetError } = await db.from('challenges').update({
+        released_at: null,
+        expires_at: null,
+      }).eq('is_mystery', true);
+      if (mysteryResetError) throw mysteryResetError;
 
       const { data: teams, error: teamReadError } = await db.from('teams').select('id,team_number');
       if (teamReadError) throw teamReadError;
@@ -252,13 +331,15 @@ Deno.serve(async (request) => {
       }).eq('id', true).select('*').single();
       if (settingsError) throw settingsError;
 
-      const [participantsAfter, submissionsAfter, leadersAfter, activityAfter] = await Promise.all([
+      const [participantsAfter, submissionsAfter, leadersAfter, activityAfter, announcementsAfter, releasedMysteriesAfter] = await Promise.all([
         db.from('participants').select('id', { count: 'exact', head: true }),
         db.from('submissions').select('id', { count: 'exact', head: true }),
         db.from('leaderboard').select('team_id', { count: 'exact', head: true }),
         db.from('activity_feed').select('id', { count: 'exact', head: true }),
+        db.from('hunt_announcements').select('id', { count: 'exact', head: true }),
+        db.from('challenges').select('id', { count: 'exact', head: true }).eq('is_mystery', true).not('released_at', 'is', null),
       ]);
-      for (const check of [participantsAfter, submissionsAfter, leadersAfter, activityAfter]) {
+      for (const check of [participantsAfter, submissionsAfter, leadersAfter, activityAfter, announcementsAfter, releasedMysteriesAfter]) {
         if (check.error) throw check.error;
       }
       const remaining = {
@@ -266,6 +347,8 @@ Deno.serve(async (request) => {
         submissions: submissionsAfter.count || 0,
         leaderboard: leadersAfter.count || 0,
         activity: activityAfter.count || 0,
+        announcements: announcementsAfter.count || 0,
+        released_mysteries: releasedMysteriesAfter.count || 0,
       };
       if (Object.values(remaining).some((count) => count !== 0)) {
         console.error('[clear-gameplay] verification failed', remaining);
@@ -352,7 +435,10 @@ Deno.serve(async (request) => {
       requireMethod(request, 'POST');
       const id = validateChallengeId(body.id);
       const challenge = validateChallenge(body);
-      const { data, error } = await db.from('challenges').update(challenge).eq('id', id).select('*').maybeSingle();
+      const updates = challenge.is_mystery
+        ? challenge
+        : { ...challenge, released_at: null, expires_at: null };
+      const { data, error } = await db.from('challenges').update(updates).eq('id', id).select('*').maybeSingle();
       if (error) throw error;
       if (!data) throw new Error('Challenge not found');
       return Response.json({ challenge: data }, { headers });

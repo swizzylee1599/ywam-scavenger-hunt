@@ -41,9 +41,61 @@ test('event cleanup is authenticated, explicitly confirmed, and empties media', 
   assert.match(source, /status: 'draft'/);
   assert.match(source, /\[clear-gameplay\] complete/);
   assert.match(source, /Object\.values\(remaining\)/);
+  assert.match(source, /hunt_announcements/);
+  assert.match(source, /released_mysteries/);
   assert.match(admin, /api\('clear-gameplay', \{ confirm: 'CLEAR GAMEPLAY DATA' \}\)/);
   assert.match(admin, /reviewItems = \[\]/);
   assert.match(html, /Reset Game for New Play/);
+});
+
+test('race control safely sends announcements and timed mystery challenges', async () => {
+  const [migration, adminHtml, admin, participant, adminApi] = await Promise.all([
+    read('supabase/migrations/20260825041220_add_live_race_interactions.sql'),
+    read('admin.html'),
+    read('js/admin.js'),
+    read('supabase/functions/hunt-api/index.ts'),
+    read('supabase/functions/hunt-admin-api/index.ts'),
+  ]);
+  assert.match(migration, /add column if not exists is_mystery boolean not null default false/);
+  assert.match(migration, /alter table public\.hunt_announcements enable row level security/);
+  assert.match(migration, /revoke all on table public\.hunt_announcements from public, anon, authenticated/);
+  assert.match(migration, /grant select, insert, delete on table public\.hunt_announcements to service_role/);
+  assert.match(migration, /released_at <= now\(\) and expires_at > now\(\)/);
+  assert.match(adminHtml, /data-admin-tab="control"/);
+  assert.match(adminHtml, /id="sendAnnouncementBtn"/);
+  assert.match(adminHtml, /id="challengeMystery"/);
+  assert.match(admin, /api\('send-announcement'/);
+  assert.match(admin, /api\('release-mystery'/);
+  assert.match(adminApi, /action === 'send-announcement'/);
+  assert.match(adminApi, /action === 'release-mystery'/);
+  assert.match(adminApi, /minutes < 5 \|\| minutes > 180/);
+  assert.match(participant, /visibleChallenges/);
+  assert.match(participant, /challenge_ids/);
+  assert.match(participant, /currentAnnouncements/);
+  assert.match(participant, /visibleChallengeIds\.has\(submission\.challenge_id\)/);
+});
+
+test('participants receive milestone celebrations and final countdown mode', async () => {
+  const [app, timer, i18n, css] = await Promise.all([
+    read('js/app.js'),
+    read('js/timer.js'),
+    read('js/i18n.js'),
+    read('css/app.css'),
+  ]);
+  assert.match(app, /observeAnnouncements\(live\.announcements\)/);
+  assert.match(app, /observeMilestone\(live\.completed/);
+  assert.match(app, /\[5, 10, 15, 20, total\]/);
+  assert.match(timer, /remaining <= 10 \* 60 \* 1000/);
+  assert.match(timer, /timer\.finalMinute/);
+  assert.match(i18n, /'milestone\.complete'/);
+  assert.match(i18n, /'mystery\.remaining'/);
+  assert.match(css, /countdown-box\.final-countdown/);
+});
+
+test('admin team count uses occupied teams rather than all team slots', async () => {
+  const adminApi = await read('supabase/functions/hunt-admin-api/index.ts');
+  assert.match(adminApi, /new Set\(participantRows\.map\(\(participant\) => participant\.team_id\)\)\.size/);
+  assert.doesNotMatch(adminApi, /team_count: teams\.count/);
 });
 
 test('team UI and server validation expose expanded choices', async () => {
@@ -58,8 +110,10 @@ test('team UI and server validation expose expanded choices', async () => {
 });
 
 test('participant leaderboard, feed, and review status refresh automatically', async () => {
-  const [app, api] = await Promise.all([
+  const [html, app, i18n, api] = await Promise.all([
+    read('index.html'),
     read('js/app.js'),
+    read('js/i18n.js'),
     read('supabase/functions/hunt-api/index.ts'),
   ]);
   assert.match(app, /huntApi\('live', \{\}, 'GET'\)/);
@@ -67,6 +121,11 @@ test('participant leaderboard, feed, and review status refresh automatically', a
   assert.match(app, /submission_statuses = live\.submission_statuses/);
   assert.match(api, /action === 'live'/);
   assert.match(api, /feed_ids/);
+  assert.match(html, /id="leaderAlert"[\s\S]*aria-live="assertive"/);
+  assert.match(app, /observeLeader\(live\.leaders, live\.settings\)/);
+  assert.match(app, /nextLeaderId !== observedLeaderId/);
+  assert.match(app, /settings\?\.status === 'open'/);
+  assert.match(i18n, /'leaderboard\.newLeader'/);
 });
 
 test('admin live screen and review queue poll without exposing pending media', async () => {

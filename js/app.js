@@ -6,6 +6,13 @@ let currentChallenge = null;
 let previewUrl = null;
 let fullStateLoading = false;
 let liveStateLoading = false;
+let observedLeaderId;
+let observedCompletedCount;
+let raceAlertTimer = null;
+let seenAnnouncementIds = new Set();
+try {
+  seenAnnouncementIds = new Set(JSON.parse(localStorage.getItem('hunt_seen_announcements') || '[]'));
+} catch { /* Ignore invalid old local data. */ }
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -29,6 +36,71 @@ function setButtonBusy(button, busy, busyText) {
   button.textContent = busy
     ? busyText
     : button.dataset.i18n ? tr(button.dataset.i18n) : button.dataset.defaultText;
+}
+
+function showRaceAlert(message, icon = '📣', intensity = 'normal') {
+  const alert = $('leaderAlert');
+  alert.querySelector('.leader-alert-icon').textContent = icon;
+  $('leaderAlertText').textContent = message;
+  alert.classList.remove('hidden');
+  alert.classList.remove('leader-alert-pop');
+  void alert.offsetWidth;
+  alert.classList.add('leader-alert-pop');
+  celebrate(intensity);
+  clearTimeout(raceAlertTimer);
+  raceAlertTimer = setTimeout(() => alert.classList.add('hidden'), 6500);
+}
+
+function showLeaderAlert(team) {
+  showRaceAlert(tr('leaderboard.newLeader', {
+    team: `${team.icon || '⭐'} ${team.name}`,
+  }), '🏆');
+}
+
+function observeLeader(leaders, settings) {
+  const leader = (leaders || []).find((team) => Number(team.score) > 0);
+  const nextLeaderId = leader?.team_id || null;
+  if (observedLeaderId === undefined) {
+    observedLeaderId = nextLeaderId;
+    return;
+  }
+  const changed = Boolean(nextLeaderId) && nextLeaderId !== observedLeaderId;
+  observedLeaderId = nextLeaderId;
+  if (changed && settings?.status === 'open') showLeaderAlert(leader);
+}
+
+function observeAnnouncements(announcements) {
+  const unseen = (announcements || []).filter((item) => !seenAnnouncementIds.has(item.id));
+  if (!unseen.length) return;
+  unseen.forEach((item) => seenAnnouncementIds.add(item.id));
+  localStorage.setItem('hunt_seen_announcements', JSON.stringify([...seenAnnouncementIds].slice(-100)));
+  const newest = unseen[0];
+  const message = window.currentLanguage === 'km' && newest.message_km
+    ? newest.message_km
+    : newest.message;
+  showRaceAlert(message, newest.kind === 'mystery' ? '🔓' : '📣', newest.kind === 'mystery' ? 'big' : 'normal');
+}
+
+function observeMilestone(completed, total, settings) {
+  const count = (completed || []).length;
+  if (observedCompletedCount === undefined) {
+    observedCompletedCount = count;
+    return;
+  }
+  const previous = observedCompletedCount;
+  observedCompletedCount = count;
+  if (settings?.status !== 'open' || count <= previous) return;
+  const milestones = [...new Set([5, 10, 15, 20, total])]
+    .filter((value) => value > 0 && value > previous && value <= count)
+    .sort((a, b) => a - b);
+  const milestone = milestones[milestones.length - 1];
+  if (!milestone) return;
+  const complete = milestone === total;
+  showRaceAlert(
+    complete ? tr('milestone.complete') : tr('milestone.reached', { count: milestone }),
+    complete ? '🏁' : '🎉',
+    'big',
+  );
 }
 
 async function join() {
@@ -56,6 +128,9 @@ window.loadState = async function loadState(first = false) {
   fullStateLoading = true;
   try {
     window.appState = await window.huntApi('state', {}, 'GET');
+    observeLeader(window.appState.leaders, window.appState.settings);
+    observeMilestone(window.appState.completed, window.appState.challenges?.length || 0, window.appState.settings);
+    observeAnnouncements(window.appState.announcements);
     $('joinView').classList.add('hidden');
     $('appView').classList.remove('hidden');
     $('tabs').classList.remove('hidden');
@@ -82,8 +157,13 @@ window.refreshLiveState = async function refreshLiveState() {
   try {
     const live = await window.huntApi('live', {}, 'GET');
     const currentFeedIds = (window.appState.feed || []).map((item) => item.id);
+    const currentChallengeIds = (window.appState.challenges || []).map((item) => item.id);
     const feedChanged = JSON.stringify(currentFeedIds) !== JSON.stringify(live.feed_ids || []);
-    if (feedChanged) {
+    const challengesChanged = JSON.stringify(currentChallengeIds) !== JSON.stringify(live.challenge_ids || []);
+    observeLeader(live.leaders, live.settings);
+    observeMilestone(live.completed, currentChallengeIds.length, live.settings);
+    observeAnnouncements(live.announcements);
+    if (feedChanged || challengesChanged) {
       liveStateLoading = false;
       await window.loadState();
       return;
@@ -92,6 +172,7 @@ window.refreshLiveState = async function refreshLiveState() {
     window.appState.submission_statuses = live.submission_statuses || {};
     window.appState.submission_notes = live.submission_notes || {};
     window.appState.leaders = live.leaders || [];
+    window.appState.announcements = live.announcements || [];
     window.appState.settings = live.settings;
     renderAll();
     window.renderParticipantTimer(window.appState.settings);
@@ -166,6 +247,9 @@ function renderChallenges() {
     const challenge = window.translateChallenge(originalChallenge);
     const status = statuses[challenge.id] || (completed.has(challenge.id) ? 'approved' : '');
     const headingIcon = status === 'approved' ? '✅ ' : status === 'pending' ? '⏳ ' : status === 'rejected' ? '↻ ' : '';
+    const mysteryMinutes = challenge.is_mystery && challenge.expires_at
+      ? Math.max(1, Math.ceil((new Date(challenge.expires_at) - Date.now()) / 60000))
+      : 0;
     return `
       <article class="card challenge ${escapeHtml(status)}">
         <div class="row between">
@@ -175,6 +259,7 @@ function renderChallenges() {
           </div>
           <span class="pill">${escapeHtml(challengePoints(challenge))}</span>
         </div>
+        ${challenge.is_mystery ? `<div class="mystery-pill">🔓 ${escapeHtml(tr('mystery.remaining', { minutes: mysteryMinutes }))}</div>` : ''}
         <p>${escapeHtml(challenge.description || '')}</p>
         ${challengeAction(challenge, status, closed, notes[challenge.id])}
       </article>
@@ -420,6 +505,7 @@ $('closeUpload').addEventListener('click', () => {
 $('mediaInput').addEventListener('change', previewMedia);
 $('submitUpload').addEventListener('click', submitChallenge);
 $('refreshBtn').addEventListener('click', () => window.loadState());
+$('leaderAlert').addEventListener('click', () => $('leaderAlert').classList.add('hidden'));
 document.querySelectorAll('.tabs button').forEach((button) => {
   button.addEventListener('click', () => setTab(button.dataset.tab));
 });

@@ -1,4 +1,4 @@
-# The Amazing Race- Siem Reap Edition v0.5
+# The Amazing Race- Siem Reap Edition v0.5.1
 
 Static scavenger hunt app for the YWAM National Staff Conference.
 
@@ -20,7 +20,8 @@ Static scavenger hunt app for the YWAM National Staff Conference.
 - Shared hunt timer
 
 The database has 90 team slots with five participants per team, enough for 450
-participants. Assignment is serialized in Postgres so concurrent joins cannot
+participants. New racers fill the fullest available team to five before another
+team is opened. Assignment is serialized in Postgres so concurrent joins cannot
 overfill a team.
 
 ## Admin features
@@ -68,6 +69,7 @@ without deleting its submission record.
 - Migration: `supabase/migrations/20260824041647_submission_review_flow.sql`
 - Migration: `supabase/migrations/20260825041220_add_live_race_interactions.sql`
 - Migration: `supabase/migrations/20260825041252_index_announcement_challenge.sql`
+- Migration: `supabase/migrations/20260827034729_fill_teams_to_five.sql`
 
 Both functions keep their existing custom session authentication and must be
 deployed with platform JWT verification disabled. The Supabase service-role key

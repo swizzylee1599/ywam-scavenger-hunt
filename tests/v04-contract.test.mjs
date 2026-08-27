@@ -98,6 +98,14 @@ test('admin team count uses occupied teams rather than all team slots', async ()
   assert.doesNotMatch(adminApi, /team_count: teams\.count/);
 });
 
+test('new participants fill each team to five before another team opens', async () => {
+  const migration = await read('supabase/migrations/20260827034729_fill_teams_to_five.sql');
+  assert.match(migration, /having count\(p\.id\) < 5/);
+  assert.match(migration, /count\(p\.id\) desc/);
+  assert.match(migration, /pg_catalog\.pg_advisory_xact_lock\(73194201\)/);
+  assert.doesNotMatch(migration, /count\(p\.id\) asc/);
+});
+
 test('team UI and server validation expose expanded choices', async () => {
   const [html, migration] = await Promise.all([
     read('index.html'),

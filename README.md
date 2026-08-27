@@ -1,4 +1,4 @@
-# The Amazing Race- Siem Reap Edition v0.5.2
+# The Amazing Race- Siem Reap Edition v0.5.3
 
 Static scavenger hunt app for the YWAM National Staff Conference.
 
@@ -44,6 +44,8 @@ The participant app checks for leaderboard, feed, timer, approval, and rejection
 changes every seven seconds while visible. The admin dashboard updates every
 three seconds. The public feed and Live Screen show approved media only;
 pending evidence remains private in Reviews until an organizer approves it.
+Silent review polling preserves unchanged photo elements and signed URLs so
+evidence stays visible instead of flashing black during each refresh.
 The dashboard team count includes occupied teams only; the 90 empty-capacity
 slots are not presented as active teams.
 

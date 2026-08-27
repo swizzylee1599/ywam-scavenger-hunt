@@ -573,18 +573,39 @@ function renderSubmissions() {
 async function loadSubmissions(reset = true, silent = false) {
   if (reviewLoading) return;
   reviewLoading = true;
+  const previousItems = reviewItems;
   if (!silent) reviewMessage('');
   if (reset) {
     reviewCursor = null;
-    reviewItems = [];
-    if (!silent) $('submissionList').innerHTML = '<div class="submission-empty">Loading submissions…</div>';
+    if (!silent) {
+      reviewItems = [];
+      $('submissionList').innerHTML = '<div class="submission-empty">Loading submissions…</div>';
+    }
   }
 
   try {
     const data = await api('list-submissions', { status: reviewStatus, before: reviewCursor });
-    reviewItems = reset ? data.submissions : [...reviewItems, ...data.submissions];
+    let changed = true;
+    if (reset) {
+      const existingMediaUrls = new Map(previousItems.map((item) => [item.id, item.media_url]));
+      const nextItems = (data.submissions || []).map((item) => ({
+        ...item,
+        media_url: existingMediaUrls.get(item.id) || item.media_url,
+      }));
+      const signature = (items) => items.map((item) => [
+        item.id,
+        item.status,
+        item.media_path,
+        item.reviewed_at,
+        item.note,
+      ].join(':')).join('|');
+      changed = signature(previousItems) !== signature(nextItems);
+      reviewItems = nextItems;
+    } else {
+      reviewItems = [...reviewItems, ...(data.submissions || [])];
+    }
     reviewCursor = data.next_cursor;
-    renderSubmissions();
+    if (!silent || changed) renderSubmissions();
     $('loadMoreSubmissions').classList.toggle('hidden', !data.has_more);
   } catch (error) {
     reviewMessage(error.message);

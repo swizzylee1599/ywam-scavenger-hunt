@@ -163,6 +163,15 @@ test('admin live screen shows participant names under each leaderboard team', as
   assert.match(css, /\.display-team-members\{/);
 });
 
+test('silent review polling keeps unchanged photos mounted instead of flashing black', async () => {
+  const [admin, html] = await Promise.all([read('js/admin.js'), read('admin.html')]);
+  assert.match(admin, /const previousItems = reviewItems/);
+  assert.match(admin, /existingMediaUrls\.get\(item\.id\) \|\| item\.media_url/);
+  assert.match(admin, /changed = signature\(previousItems\) !== signature\(nextItems\)/);
+  assert.match(admin, /if \(!silent \|\| changed\) renderSubmissions\(\)/);
+  assert.match(html, /js\/admin\.js\?v=0\.5\.3/);
+});
+
 test('join form offers every Cambodia province and municipality', async () => {
   const html = await read('index.html');
   const provinceSelect = html.match(/<select id="base"[\s\S]*?<\/select>/)?.[0] || '';

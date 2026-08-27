@@ -187,7 +187,7 @@ Deno.serve(async (request) => {
       requireMethod(request, 'GET');
       const [settings, participants, leaders, challenges, pending, approved, rejected, latestActivity, announcements] = await Promise.all([
         getSettings(),
-        db.from('participants').select('id,team_id'),
+        db.from('participants').select('team_id,display_name,joined_at').order('joined_at'),
         db.from('leaderboard').select('*').order('score', { ascending: false }).limit(10),
         db.from('challenges').select('*').order('sort_order').order('created_at'),
         db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'flagged'),
@@ -205,10 +205,19 @@ Deno.serve(async (request) => {
       if (latestActivity.error) throw latestActivity.error;
       if (announcements.error) throw announcements.error;
       const participantRows = participants.data || [];
+      const teamMembers: Record<string, string[]> = {};
+      for (const participant of participantRows) {
+        const teamId = String(participant.team_id || '');
+        const displayName = String(participant.display_name || '').trim();
+        if (!teamId || !displayName) continue;
+        if (!teamMembers[teamId]) teamMembers[teamId] = [];
+        teamMembers[teamId].push(displayName);
+      }
       return Response.json({
         settings,
         participant_count: participantRows.length,
         team_count: new Set(participantRows.map((participant) => participant.team_id)).size,
+        team_members: teamMembers,
         leaders: leaders.data || [],
         challenges: challenges.data || [],
         announcements: announcements.data || [],

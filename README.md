@@ -1,4 +1,4 @@
-# The Amazing Race- Siem Reap Edition v0.5.1
+# The Amazing Race- Siem Reap Edition v0.5.2
 
 Static scavenger hunt app for the YWAM National Staff Conference.
 
@@ -37,6 +37,7 @@ overfill a team.
 - Paginated submission review with pending, approved, and rejected filters
 - QR join page link and polished leaderboard
 - Auto-refreshing review queue and full-screen live event display
+- Participant names shown beneath each team on the Live Screen leaderboard
 - Race Control for announcements and timed mystery-challenge releases
 
 The participant app checks for leaderboard, feed, timer, approval, and rejection

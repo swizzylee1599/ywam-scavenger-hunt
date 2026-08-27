@@ -150,6 +150,19 @@ test('admin live screen and review queue poll without exposing pending media', a
   assert.match(api, /from\('activity_feed'\)/);
 });
 
+test('admin live screen shows participant names under each leaderboard team', async () => {
+  const [admin, adminApi, css] = await Promise.all([
+    read('js/admin.js'),
+    read('supabase/functions/hunt-admin-api/index.ts'),
+    read('css/admin.css'),
+  ]);
+  assert.match(adminApi, /select\('team_id,display_name,joined_at'\)/);
+  assert.match(adminApi, /team_members: teamMembers/);
+  assert.match(admin, /state\.team_members\?\.\[team\.team_id\]/);
+  assert.match(admin, /display-team-members/);
+  assert.match(css, /\.display-team-members\{/);
+});
+
 test('join form offers every Cambodia province and municipality', async () => {
   const html = await read('index.html');
   const provinceSelect = html.match(/<select id="base"[\s\S]*?<\/select>/)?.[0] || '';

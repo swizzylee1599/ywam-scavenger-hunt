@@ -198,16 +198,25 @@ function startAdminTimer(settings) {
 function renderLiveDisplay() {
   if (!state) return;
   const medals = ['🥇', '🥈', '🥉'];
-  $('displayLeaders').innerHTML = (state.leaders || []).slice(0, 10).map((team, index) => `
-    <div class="display-leader">
-      <span class="display-rank">${medals[index] || `#${index + 1}`}</span>
-      <span class="display-team">
-        <span class="display-team-icon">${escapeHtml(team.icon || '⭐')}</span>
-        <span class="display-team-name">${escapeHtml(team.name)}</span>
-      </span>
-      <span class="display-score">${Number(team.score) || 0} pts</span>
-    </div>
-  `).join('') || '<div class="display-empty">The leaderboard will appear when teams earn approved points.</div>';
+  $('displayLeaders').innerHTML = (state.leaders || []).slice(0, 10).map((team, index) => {
+    const memberNames = state.team_members?.[team.team_id] || [];
+    const memberText = memberNames.length
+      ? memberNames.join(' · ')
+      : `${Number(team.member_count) || 0} members`;
+    return `
+      <div class="display-leader">
+        <span class="display-rank">${medals[index] || `#${index + 1}`}</span>
+        <span class="display-team">
+          <span class="display-team-icon">${escapeHtml(team.icon || '⭐')}</span>
+          <span class="display-team-copy">
+            <span class="display-team-name">${escapeHtml(team.name)}</span>
+            <small class="display-team-members">👥 ${escapeHtml(memberText)}</small>
+          </span>
+        </span>
+        <span class="display-score">${Number(team.score) || 0} pts</span>
+      </div>
+    `;
+  }).join('') || '<div class="display-empty">The leaderboard will appear when teams earn approved points.</div>';
 
   $('displayFeed').innerHTML = displayFeed.map((item) => {
     const media = item.media_type === 'video'
